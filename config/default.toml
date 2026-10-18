@@ -1,0 +1,37 @@
+# 运行配置模板。命令行参数优先级高于此文件；未填写字段使用代码默认值。
+
+[session]
+session_mode = "cued"
+protocol = "standard_5s"
+blocks = 3
+random_seed = 20260928
+cue_s = 2.0
+response_delay_s = 0.23
+record_root = "session_records"
+
+[acquisition]
+eeg_stream_name = "obci_eeg1"
+eeg_stream_type = "EEG"
+timestamp_mode = "lsl"
+channel_indices = [0, 1, 2, 3, 4, 5, 6, 7]
+buffer_s = 60.0
+connect_timeout_s = 10.0
+startup_timeout_s = 45.0
+warmup_s = 10.0
+
+[decoder]
+target_fs = 250.0
+n_harmonics = 3
+filter_bank_profile = "m3_5band"
+weight_a = 1.25
+weight_b = 0.25
+notch_hz = 50.0
+notch_mode = "epoch"
+cca_regularization = 1e-10
+
+[display]
+full_screen = true
+screen_index = 0
+window_size = [1920, 1080]
+viewing_distance_cm = 70.0
+

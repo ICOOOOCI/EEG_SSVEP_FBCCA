@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssvep-fbcca-keyboard"
+version = "0.1.0"
+description = "40-target EEG SSVEP keyboard with FBCCA decoding"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "threadpoolctl>=3.1",
+  "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+realtime = [
+  "mne-lsl==1.12.0",
+  "psychopy>=2023.2",
+]
+dev = [
+  "pytest>=7.4",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+ssvep-keyboard = "ssvep_fbcca.app:cli"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["session_records", ".venv"]
+
