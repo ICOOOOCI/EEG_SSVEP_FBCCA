@@ -3,6 +3,7 @@ from __future__ import annotations
 from .common import *
 from .config import *
 from .events import *
+from .events import _json_safe
 from .quality import *
 from .calibration import *
 
@@ -130,7 +131,9 @@ class SessionRecorder:
         """准备会话路径、清单、程序快照和可选的时间校准证据。"""
         base = Path(root if root is not None else cfg.record_root)
         if not base.is_absolute():
-            base = Path(__file__).resolve().parent / base
+            # 相对记录目录以项目根目录为基准；不要落到 src/ssvep_fbcca/ 下。
+            # 这必须与 probe_save_directory() 的解析规则一致。
+            base = ROOT / base
         timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
         self.session_dir = base / f"session_{timestamp}_{uuid.uuid4().hex[:8]}"
         self.manifest_path = self.session_dir / "manifest.json"

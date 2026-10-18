@@ -4,6 +4,7 @@ from .common import *
 from .config import *
 from .signal import *
 from .calibration import *
+from .events import _json_safe
 
 
 
