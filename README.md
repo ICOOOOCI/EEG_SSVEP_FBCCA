@@ -1,4 +1,3 @@
-# EEG SSVEP FBCCA 键盘
 
 ## macOS 启动
 
