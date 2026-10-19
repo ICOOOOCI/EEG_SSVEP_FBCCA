@@ -148,7 +148,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
         with threadpool_limits(limits=1):
             # 启动预热也经过 Decoder 端口，替换解码器时不会遗漏启动路径。
             collector.decoder.decode(warm, cfg.target_fs, notch_context=warm_context)
-        print("[3/3] 创建键盘窗口；在菜单按1自由输入、2提示测试，再按SPACE开始…", flush=True)
+        print("[3/3] 创建键盘窗口；在菜单按1自由输入、2提示测试、3 ChatBox，再按SPACE开始…", flush=True)
         stage = "DISPLAY"
         app = PsychoPyKeyboard(cfg, collector, markers, ledger, recorder)
         reason = app.run()
@@ -178,7 +178,8 @@ def main(*, cfg: Optional[Config] = None) -> dict:
             except Exception as exc:
                 add_error(exc, "LSL_CONNECTION")
                 reason += f"; markers.close: {type(exc).__name__}: {exc}"
-        report = (summarize_free_trials(ledger.records, ledger) if cfg.session_mode == "free"
+        report = (summarize_free_trials(ledger.records, ledger)
+                  if cfg.session_mode in ("free", "chatbox")
                   else summarize_trials(ledger.records, cfg.blocks * len(TARGETS)))
         session_artifact = None
         if recorder is not None:
@@ -220,7 +221,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
             "export_artifacts": dict(recorder.export_artifacts) if recorder else {},
             "marker_error": str(markers.error) if markers and markers.error else None,
             "validation_scope": "software events only; physical screen/device delays unmeasured"}
-        if cfg.session_mode == "free":
+        if cfg.session_mode in ("free", "chatbox"):
             print_free_summary(report)
         else:
             print_summary(report, ledger)

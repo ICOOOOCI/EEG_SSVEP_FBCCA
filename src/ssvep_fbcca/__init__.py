@@ -36,6 +36,7 @@ from .analysis import (
     summarize_free_trials, summarize_trials,
 )
 from .ui import MainThreadGraphicsGC, PsychoPyKeyboard, calculate_keyboard_layout, keyboard_layout_info
+from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend, OpenAIChatBackend
 from .app import cli, main, observe_lsl_timing, static_ui_self_test
 
 __all__ = [
@@ -56,6 +57,7 @@ __all__ = [
     "make_schedule", "output_display_text", "preflight_transport", "print_free_summary",
     "print_summary", "summarize_free_trials", "summarize_trials", "MainThreadGraphicsGC",
     "PsychoPyKeyboard", "calculate_keyboard_layout", "keyboard_layout_info", "cli", "main",
-    "observe_lsl_timing", "static_ui_self_test",
+    "observe_lsl_timing", "static_ui_self_test", "ChatBackendError", "ChatMessage",
+    "DeepSeekChatBackend", "OpenAIChatBackend",
 ]
 

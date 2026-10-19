@@ -9,6 +9,7 @@ from .recording import *
 from .analysis import *
 from .interfaces import EegSource, EventSink, TrialSink
 from .intent import *
+from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 
 
 
@@ -207,6 +208,9 @@ class PsychoPyKeyboard:
         self._rest_beep: Any = None
         self._active_decode_cancel: Optional[threading.Event] = None
         self._decode_future: Any = None
+        self._chat_future: Any = None
+        self._chat_history: list[ChatMessage] = []
+        self._chat_backend: Any = None
         self._output_cache: Optional[str] = None
         self._closed = False
         self._graphics_gc = MainThreadGraphicsGC()
@@ -293,7 +297,8 @@ class PsychoPyKeyboard:
         menu_font = "Arial"
         self.mode_title = visual.TextStim(self.win, text="Select mode", pos=(0, 165*ui_scale),
             height=34*ui_scale, font=menu_font, color="white", autoLog=False)
-        self.mode_positions = {"free": (0, 48*ui_scale), "cued": (0, -48*ui_scale)}
+        self.mode_positions = {"free": (0, 82*ui_scale), "cued": (0, 0),
+                               "chatbox": (0, -82*ui_scale)}
         self.mode_outline = visual.Rect(self.win, width=min(460*ui_scale, width*.8),
             height=76*ui_scale, fillColor=None, lineColor="#FFE45C",
             lineWidth=max(1, 2*ui_scale), units="pix", autoLog=False)
@@ -302,8 +307,10 @@ class PsychoPyKeyboard:
                 height=28*ui_scale, font=menu_font, color="white", autoLog=False),
             "cued": visual.TextStim(self.win, text="2  Cued test", pos=self.mode_positions["cued"],
                 height=28*ui_scale, font=menu_font, color="white", autoLog=False),
+            "chatbox": visual.TextStim(self.win, text="3  ChatBox  (DeepSeek)", pos=self.mode_positions["chatbox"],
+                height=28*ui_scale, font=menu_font, color="white", autoLog=False),
         }
-        self.mode_hint = visual.TextStim(self.win, text="Enter / Space: start  ·  Esc: exit",
+        self.mode_hint = visual.TextStim(self.win, text="1/2/3: select  ·  Enter / Space: start  ·  Esc: exit",
             pos=(0, -height/2 + 82*ui_scale), height=20*ui_scale,
             font=menu_font, color="white", autoLog=False)
         self.mode_warning = visual.TextStim(self.win, text="Warning: starting will show 8–15.8 Hz visual flicker · Esc: stop",
@@ -377,6 +384,22 @@ class PsychoPyKeyboard:
         self.rest_auto_label = visual.TextStim(self.win, text="Resumes automatically",
             pos=(0, -height*.19), height=18*ui_scale,
             font=menu_font, color="#BDBDC6", autoLog=False)
+        # 模式三的聊天页复用同一个 PsychoPy 窗口，但隐藏40键，只显示消息历史。
+        self.chat_title = visual.TextStim(self.win, text="DeepSeek ChatBox",
+            pos=(0, height*.41), height=34*ui_scale, font=menu_font,
+            color="#FFE45C", bold=True, autoLog=False)
+        self.chat_panel = visual.Rect(self.win, width=width*.86, height=height*.68,
+            pos=(0, height*.0), fillColor=(-.88, -.88, -.86), lineColor="#64646D",
+            lineWidth=max(1, 1.5*ui_scale), units="pix", autoLog=False)
+        self.chat_history_text = visual.TextStim(self.win, text="", pos=(-width*.39, height*.29),
+            height=18*ui_scale, wrapWidth=width*.76, font=menu_font, color="white",
+            alignText="left", anchorHoriz="left", anchorVert="top", autoLog=False)
+        self.chat_status = visual.TextStim(self.win, text="", pos=(0, -height*.39),
+            height=18*ui_scale, wrapWidth=width*.86, font=menu_font, color="#BDBDC6",
+            autoLog=False)
+        self.chat_hint = visual.TextStim(self.win, text="Press Enter to return to the 40-key keyboard  ·  ESC: exit",
+            pos=(0, -height*.46), height=16*ui_scale, font=menu_font,
+            color="white", autoLog=False)
         for _ in range(30):
             self._check_abort()
             self._draw_startup_check()
@@ -525,6 +548,96 @@ class PsychoPyKeyboard:
         self.pause_title.draw()
         self.pause_subtitle.draw()
 
+    def _format_chat_history(self) -> str:
+        """将本地对话历史转换成可读的聊天页文本。"""
+        if not self._chat_history:
+            return "No messages yet."
+        lines = []
+        for message in self._chat_history[-6:]:
+            label = "YOU" if message.role == "user" else "DEEPSEEK"
+            content = " ".join(message.content.split())
+            if len(content) > 650:
+                content = content[:650].rstrip() + "..."
+            lines.append(f"{label}\n{content}")
+        rendered = "\n\n".join(lines)
+        # 只限制显示区域，不截断发送给 API 的完整历史。
+        return rendered[-1800:]
+
+    def _draw_chat_display(self) -> None:
+        """绘制模式三聊天窗口，不呈现40键闪烁。"""
+        self.chat_panel.draw()
+        self.chat_title.draw()
+        self.chat_history_text.draw()
+        self.chat_status.draw()
+        self.chat_hint.draw()
+
+    def _wait_chat_return(self) -> None:
+        """在聊天页等待第二次回车，并避免提交键残留导致立即返回。"""
+        self.event.getKeys(keyList=["return", "num_enter"])
+        armed_at = self.clock()
+        while True:
+            self._check_abort()
+            keys = self.event.getKeys(keyList=["return", "num_enter"])
+            self._draw_chat_display()
+            self.win.flip()
+            if self.clock() - armed_at >= .35 and any(k in keys for k in ("return", "num_enter")):
+                return
+
+    def _run_chat_turn(self, text: str) -> None:
+        """把一条已由40键输入的文本发送到 DeepSeek 并展示回复。"""
+        text = text.strip()
+        if not text:
+            return
+        self.output_box.autoDraw = False
+        self.output_text.autoDraw = False
+        self._chat_history.append(ChatMessage("user", text))
+        self.chat_history_text.text = self._format_chat_history()
+        self.chat_status.text = "DeepSeek is replying..."
+        try:
+            if self._chat_backend is None:
+                self._chat_backend = DeepSeekChatBackend(
+                    model=self.cfg.deepseek_model,
+                    endpoint=self.cfg.deepseek_api_url,
+                    timeout=self.cfg.deepseek_timeout_s,
+                    api_key_env=self.cfg.deepseek_api_key_env)
+            request_history = list(self._chat_history[:-1])[-20:]
+            if self.cfg.deepseek_system_prompt:
+                request_history.insert(0, ChatMessage("system", self.cfg.deepseek_system_prompt))
+            self._chat_future = self.executor.submit(
+                self._chat_backend.send, text, history=request_history)
+            while not self._chat_future.done():
+                self._check_abort()
+                self._draw_chat_display()
+                self.win.flip()
+            answer = self._chat_future.result()
+            self._chat_history.append(ChatMessage("assistant", answer))
+            self.chat_history_text.text = self._format_chat_history()
+            self.chat_status.text = "Reply complete"
+        except (ChatBackendError, ValueError) as exc:
+            self.chat_status.text = f"DeepSeek request failed: {exc}"
+            print(f"[DeepSeek] {exc}", file=sys.stderr, flush=True)
+        finally:
+            self._chat_future = None
+        try:
+            self._wait_chat_return()
+        finally:
+            self.output_box.autoDraw = True
+            self.output_text.autoDraw = True
+
+    def _chat_submit_requested(self) -> bool:
+        """消费一次物理回车请求；没有草稿时回车不会打断连续输入。"""
+        keys = self.event.getKeys(keyList=["return", "num_enter"])
+        return bool(self.ledger.typed_text.strip()) and any(
+            key in keys for key in ("return", "num_enter"))
+
+    def _submit_chat_draft(self) -> None:
+        """提交当前完整草稿，并在聊天页返回后继续下一条脑机输入。"""
+        prompt = self.ledger.typed_text
+        self.ledger.typed_text = ""
+        self._sync_output_text(force=True)
+        self.message.text = ""
+        self._run_chat_turn(prompt)
+
     def _prepare_cued_rest_display(self, block_id: int, completed_in_block: int) -> None:
         """设置提示测试定时休息页的进度文字。"""
         self.header.text = (f"Block {block_id}/{self.cfg.blocks}  ·  "
@@ -574,9 +687,11 @@ class PsychoPyKeyboard:
     def _prepare_processing_status(self, record: TrialRecord) -> None:
         """根据自由输入或提示测试模式准备处理状态页。"""
         free = record.mode == "free"
-        self.header.text = (f"Selection {record.trial_id}" if free else
+        self.header.text = ((f"CHATBOX | Selection {record.trial_id}" if self.cfg.session_mode == "chatbox"
+                             else f"Selection {record.trial_id}") if free else
                             f"Trial {record.trial_id} of {self.cfg.blocks*len(TARGETS)}")
-        self.footer.text = "SPACE: pause  ·  ESC: stop" if free else "ESC: stop"
+        self.footer.text = (("Waiting for EEG result · ESC: stop" if self.cfg.session_mode == "chatbox"
+                             else "SPACE: pause  ·  ESC: stop") if free else "ESC: stop")
         target = None if free else TARGETS[record.true_class - 1]
         self.processing_key_label.text = ("" if target is None else
                                           target.display_label or "SPACE")
@@ -958,6 +1073,11 @@ class PsychoPyKeyboard:
             feedback = (f"Recognized: {pred.symbol} ({pred.frequency_hz:.1f} Hz)\n\n"
                         "Choose your next character in the next round.\n"
                         "Keyboard SPACE: pause   ESC: exit")
+            if self.cfg.session_mode == "chatbox":
+                self.header.text = f"CHATBOX | Selection {record.trial_id} | Recognized: {pred.symbol}"
+                feedback = (f"Recognized: {pred.symbol} ({pred.frequency_hz:.1f} Hz)\n\n"
+                            "Continue with the 40-key keyboard; press Enter when finished.\n"
+                            "ESC: exit")
         else:
             self._show_cued_result_feedback(record, result, target, mains)
             return
@@ -981,8 +1101,11 @@ class PsychoPyKeyboard:
         self._active_decode_cancel = threading.Event()
         self._phase(record, "PREPARE")
         if free:
-            self.header.text = f"FREE | Selection {record.trial_id} | Choose your next character"
-            self.footer.text = "Keyboard SPACE: pause   ·   ESC: exit   ·   <-: delete"
+            self.header.text = (f"CHATBOX | Selection {record.trial_id} | Choose your next character"
+                                if cfg.session_mode == "chatbox" else
+                                f"FREE | Selection {record.trial_id} | Choose your next character")
+            self.footer.text = ("Enter: send when finished  ·  ESC: exit" if cfg.session_mode == "chatbox"
+                                else "Keyboard SPACE: pause   ·   ESC: exit   ·   <-: delete")
         else:
             self.header.text = f"Block {record.block_id}/{cfg.blocks} | Trial {record.trial_id}/{cfg.blocks*40} | Look at {target.symbol}"
             self.footer.text = "Follow the highlighted key; trials advance automatically | ESC: stop"
@@ -1044,25 +1167,31 @@ class PsychoPyKeyboard:
         self.mode_warning.draw()
 
     def _select_mode(self) -> str:
-        """等待用户选择自由输入或提示测试模式。"""
+        """等待用户选择自由输入、提示测试或 DeepSeek ChatBox。"""
         self._pause_enabled = False
         selected = self.cfg.session_mode
-        self.event.getKeys(keyList=["1", "2", "num_1", "num_2", "space", "return", "num_enter"])
+        mode_keys = ["1", "2", "3", "num_1", "num_2", "num_3",
+                     "space", "return", "num_enter"]
+        self.event.getKeys(keyList=mode_keys)
         self.output_box.autoDraw = False
         self.output_text.autoDraw = False
         try:
             while True:
                 self._check_abort()
-                keys = self.event.getKeys(keyList=["1", "2", "num_1", "num_2", "space", "return", "num_enter"])
+                keys = self.event.getKeys(keyList=mode_keys)
                 if "1" in keys or "num_1" in keys:
                     selected = "free"
                 if "2" in keys or "num_2" in keys:
                     selected = "cued"
+                if "3" in keys or "num_3" in keys:
+                    selected = "chatbox"
                 self._draw_mode_menu(selected)
                 self.win.flip()
                 if any(k in keys for k in ("space", "return", "num_enter")):
                     self.cfg.session_mode = selected
-                    print("\nSelected mode: " + ("Free spelling" if selected == "free" else "Cued test"), flush=True)
+                    labels = {"free": "Free spelling", "cued": "Cued test",
+                              "chatbox": "DeepSeek ChatBox"}
+                    print("\nSelected mode: " + labels[selected], flush=True)
                     return selected
         finally:
             self.output_box.autoDraw = True
@@ -1073,6 +1202,8 @@ class PsychoPyKeyboard:
         if self.static_only:
             raise RuntimeFault("DISPLAY", "静态自检不能启动实验")
         mode = self._select_mode()
+        if mode == "chatbox":
+            return self._run_chatbox()
         return self._run_free() if mode == "free" else self._run_cued()
 
     def _wait_free_pause(self, message: str) -> None:
@@ -1204,6 +1335,82 @@ class PsychoPyKeyboard:
         finally:
             self._pause_enabled = False
             self._cancel_decode()
+
+    def _run_chatbox(self) -> str:
+        """模式三：持续使用40键输入，回车发送后进入聊天页，再回车返回。"""
+        self._pause_enabled = False
+        selection_id = 0
+        consecutive_invalid = 0
+        try:
+            while True:
+                # Enter 是提交键，不是“每字符一次”的确认键；没有 Enter 时马上
+                # 开始下一轮 EEG 选择，因此可以连续输入整句话。
+                if self._chat_submit_requested():
+                    self._submit_chat_draft()
+                    continue
+                selection_id += 1
+                record = TrialRecord(selection_id, 1, None, mode="free", start=self.clock())
+                exit_requested = False
+                fatal = False
+                try:
+                    self._run_trial(record)
+                except (AbortSession, KeyboardInterrupt) as exc:
+                    exit_requested = True
+                    record.status = "valid" if record.text_applied else "aborted"
+                    record.reason = str(exc) or "KeyboardInterrupt"
+                    self.cancel.set()
+                except Exception as exc:
+                    self._attach_failed_epoch(record, exc)
+                    record.status = "valid" if record.text_applied else "invalid"
+                    record.reason = f"{type(exc).__name__}: {exc}"
+                    fatal = (isinstance(exc, RuntimeFault) or not isinstance(exc, InvalidTrial)
+                             or self.collector.error is not None or self.markers.error is not None)
+                    self._note_fault(exc, fatal=fatal)
+                finally:
+                    self._cancel_decode()
+                    try:
+                        self.win.recordFrameIntervals = False
+                        self._draw_status()
+                        self.win.flip()
+                    except Exception as exc:
+                        fatal = True
+                        record.reason += f"; display-close error: {exc}"
+                        self._note_fault(exc, fatal=True, default="DISPLAY")
+                        if not record.text_applied:
+                            record.status = "invalid"
+                    record.end = self.clock()
+                    self._phase(record, "COMPLETE")
+                    try:
+                        self.markers.mark(EventStamp("selection_end", record.trial_id, None,
+                            {"mode": "chatbox", "status": record.status,
+                             "prediction": (record.result or {}).get("prediction"),
+                             "text_applied": record.text_applied}))
+                    except Exception as exc:
+                        record.reason += f"; marker error: {exc}"
+                        fatal = True
+                        self._note_fault(exc, fatal=True, default="LSL_CONNECTION")
+                    self.ledger.commit(record)
+                    self._persist_trial(record)
+                    self._release_free_eeg(record)
+                if exit_requested or fatal:
+                    return record.reason or "ChatBox stopped"
+                if record.text_applied:
+                    consecutive_invalid = 0
+                elif record.status == "rejected":
+                    consecutive_invalid = 0
+                else:
+                    consecutive_invalid += 1
+                if consecutive_invalid >= self.cfg.max_consecutive_invalid:
+                    self.show_message("Several selections were not recognized. Check the EEG stream, then press ESC to exit.",
+                                      self.cfg.feedback_s)
+                    consecutive_invalid = 0
+                if self._chat_submit_requested():
+                    self._submit_chat_draft()
+        finally:
+            self._pause_enabled = False
+            self._cancel_decode()
+            if self._chat_future is not None:
+                self._chat_future.cancel()
 
     def _run_cued(self) -> str:
         """按随机计划运行提示测试，并处理重试、分段休息和终止。"""

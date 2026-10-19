@@ -11,6 +11,7 @@ dependencies = [
   "numpy>=1.24",
   "scipy>=1.10",
   "threadpoolctl>=3.1",
+  "certifi>=2023.7.22",
   "tomli>=2.0; python_version < '3.11'",
 ]
 

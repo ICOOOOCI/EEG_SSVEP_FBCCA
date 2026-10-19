@@ -75,6 +75,12 @@ class Config:
         return cfg
 
     session_mode: str = "cued"
+    # 模式三使用 DeepSeek Chat Completions；密钥只从环境变量读取。
+    deepseek_model: str = "deepseek-chat"
+    deepseek_api_url: str = "https://api.deepseek.com/chat/completions"
+    deepseek_api_key_env: str = "DEEPSEEK_API_KEY"
+    deepseek_timeout_s: float = 60.0
+    deepseek_system_prompt: Optional[str] = None
     free_prepare_s: float = 1.0
     protocol: str = "standard_5s"
     blocks: int = 3
@@ -235,8 +241,19 @@ class Config:
                 raise ValueError("history 模式不能叠加未验证的单窗工频回归")
             if self.rejection_enabled:
                 raise ValueError("history 模式的拒识分数尚未标定，不能套用epoch模式阈值")
-        if self.session_mode not in ("free", "cued"):
-            raise ValueError("session_mode 必须为 free 或 cued")
+        if self.session_mode not in ("free", "cued", "chatbox"):
+            raise ValueError("session_mode 必须为 free、cued 或 chatbox")
+        for name in ("deepseek_model", "deepseek_api_url", "deepseek_api_key_env"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{name} 不能为空")
+        if not self.deepseek_api_url.startswith(("http://", "https://")):
+            raise ValueError("deepseek_api_url 必须是 HTTP(S) URL")
+        if (not math.isfinite(self.deepseek_timeout_s)
+                or self.deepseek_timeout_s <= 0):
+            raise ValueError("deepseek_timeout_s 必须为有限正数")
+        if self.deepseek_system_prompt is not None and not isinstance(self.deepseek_system_prompt, str):
+            raise ValueError("deepseek_system_prompt 必须是字符串或空值")
         if self.timestamp_mode not in ("lsl", "auto", "strict", "openbci"):
             raise ValueError("timestamp_mode 必须为 lsl；旧值仅供历史会话离线读取")
         if not isinstance(self.continue_on_timestamp_anomaly, bool):

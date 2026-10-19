@@ -2,6 +2,10 @@
 
 [session]
 session_mode = "cued"
+deepseek_model = "deepseek-chat"
+deepseek_api_url = "https://api.deepseek.com/chat/completions"
+deepseek_api_key_env = "DEEPSEEK_API_KEY"
+deepseek_timeout_s = 60.0
 protocol = "standard_5s"
 blocks = 3
 random_seed = 20260928
