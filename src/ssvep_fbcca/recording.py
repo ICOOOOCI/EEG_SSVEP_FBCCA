@@ -129,11 +129,9 @@ class SessionRecorder:
     def __init__(self, cfg: Config, *, root: Optional[str | Path] = None,
                  context: Optional[dict[str, Any]] = None):
         """准备会话路径、清单、程序快照和可选的时间校准证据。"""
-        base = Path(root if root is not None else cfg.record_root)
-        if not base.is_absolute():
-            # 相对记录目录以项目根目录为基准；不要落到 src/ssvep_fbcca/ 下。
-            # 这必须与 probe_save_directory() 的解析规则一致。
-            base = ROOT / base
+        # 与 probe_save_directory() 使用完全相同的规则，确保探测目录和
+        # 实际写入目录一致；同时展开 ``~`` 并输出绝对路径。
+        base = resolve_record_root(root if root is not None else cfg.record_root)
         timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
         self.session_dir = base / f"session_{timestamp}_{uuid.uuid4().hex[:8]}"
         self.manifest_path = self.session_dir / "manifest.json"

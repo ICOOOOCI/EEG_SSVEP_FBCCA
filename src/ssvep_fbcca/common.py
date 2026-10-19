@@ -42,6 +42,19 @@ import numpy as np
 # 记录目录和诊断文件配置。
 ROOT = Path(__file__).resolve().parents[2]
 
+
+def resolve_record_root(directory: str | Path) -> Path:
+    """将会话保存目录解析为稳定的绝对路径。
+
+    配置和命令行都允许使用 ``~`` 或相对路径。两者必须在目录探测和
+    ``SessionRecorder`` 中使用同一套规则，否则探测通过的目录可能与实际
+    写入目录不一致。
+    """
+    path = Path(directory).expanduser()
+    if not path.is_absolute():
+        path = ROOT / path
+    return path.resolve()
+
 PYTHON_VERSION = (3, 10, 11)
 
 FAULTS = {
@@ -121,9 +134,7 @@ def check_environment(*, static_ui: bool = False) -> dict:
 
 def probe_save_directory(directory: str | Path) -> str:
     """通过写入、同步、原子替换和回读验证保存目录。"""
-    directory = Path(directory)
-    if not directory.is_absolute():
-        directory = ROOT / directory
+    directory = resolve_record_root(directory)
     try:
         directory.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix=".write-check-", dir=directory) as tmp:
