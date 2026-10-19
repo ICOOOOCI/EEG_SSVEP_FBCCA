@@ -12,18 +12,11 @@ import ssl
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import json
-from typing import Any, Iterable, Mapping, Protocol
+from typing import Any, Iterable, Mapping
 
 
 class ChatBackendError(RuntimeError):
-    """ChatGPT 请求失败或响应格式无效。"""
-
-
-class ResponsesClient(Protocol):
-    """OpenAI SDK client.responses 的最小端口，便于离线测试。"""
-
-    def create(self, **kwargs: Any) -> Any:
-        ...
+    """聊天请求失败或响应格式无效。"""
 
 
 def _verified_urlopen(request: Request, *, timeout: float) -> Any:
@@ -66,67 +59,10 @@ def _normalize_messages(messages: Iterable[ChatMessage | Mapping[str, str]]) -> 
     return normalized
 
 
-class OpenAIChatBackend:
-    """使用 OpenAI Responses API 发送文本对话。"""
-
-    def __init__(
-        self,
-        *,
-        model: str | None = None,
-        instructions: str | None = None,
-        client: Any | None = None,
-        timeout: float = 60.0,
-    ) -> None:
-        if not isinstance(timeout, (int, float)) or timeout <= 0:
-            raise ValueError("timeout 必须为正数")
-        self.model = model or os.getenv("OPENAI_MODEL", "gpt-5-mini")
-        if not self.model.strip():
-            raise ValueError("model 不能为空")
-        self.instructions = instructions
-        self.timeout = float(timeout)
-        if client is None:
-            try:
-                from openai import OpenAI
-            except ImportError as exc:
-                raise ChatBackendError(
-                    "未安装 OpenAI SDK；请执行 .venv/bin/python -m pip install -e '.[llm]'"
-                ) from exc
-            try:
-                client = OpenAI(timeout=self.timeout)
-            except Exception as exc:
-                raise ChatBackendError(
-                    "无法创建 OpenAI 客户端；请确认 OPENAI_API_KEY 已设置"
-                ) from exc
-        self._responses: ResponsesClient = client.responses
-
-    def send(
-        self,
-        text: str,
-        *,
-        history: Iterable[ChatMessage | Mapping[str, str]] = (),
-    ) -> str:
-        """发送一条已确认的用户消息并返回纯文本回复。"""
-        if not isinstance(text, str) or not text.strip():
-            raise ValueError("发送内容不能为空")
-        messages = _normalize_messages(history)
-        messages.append({"role": "user", "content": text})
-        request: dict[str, Any] = {"model": self.model, "input": messages}
-        if self.instructions:
-            request["instructions"] = self.instructions
-        try:
-            response = self._responses.create(**request)
-            answer = getattr(response, "output_text", None)
-        except Exception as exc:
-            raise ChatBackendError(f"ChatGPT API 请求失败：{exc}") from exc
-        if not isinstance(answer, str) or not answer.strip():
-            raise ChatBackendError("ChatGPT API 返回了空文本响应")
-        return answer.strip()
-
-
 class DeepSeekChatBackend:
     """DeepSeek Chat Completions API 适配器。
 
-    DeepSeek 使用 OpenAI 兼容的消息格式，但这里直接使用 Python 标准库发起
+    DeepSeek 使用标准的聊天消息格式，这里直接使用 Python 标准库发起
     请求，避免为键盘运行环境额外安装 SDK。API key 只从环境变量读取，不写入
     会话记录；默认变量名为 ``DEEPSEEK_API_KEY``。
     """
@@ -203,4 +139,4 @@ class DeepSeekChatBackend:
         return answer.strip()
 
 
-__all__ = ["ChatBackendError", "ChatMessage", "OpenAIChatBackend", "DeepSeekChatBackend"]
+__all__ = ["ChatBackendError", "ChatMessage", "DeepSeekChatBackend"]
