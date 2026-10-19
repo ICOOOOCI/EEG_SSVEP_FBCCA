@@ -8,6 +8,7 @@ from .events import *
 from .recording import *
 from .analysis import *
 from .interfaces import EegSource, EventSink, TrialSink
+from .intent import *
 
 
 
@@ -723,9 +724,12 @@ class PsychoPyKeyboard:
                      else float(cfg.rejection_min_score))
         min_margin = (None if cfg.rejection_min_margin is None
                       else float(cfg.rejection_min_margin))
+        max_alpha_ratio = (None if cfg.rejection_max_alpha_ratio is None
+                           else float(cfg.rejection_max_alpha_ratio))
         configured = cfg.rejection_thresholds_configured
         max_score: Optional[float] = None
         score_margin: Optional[float] = None
+        alpha_ratio: Optional[float] = None
         reason_codes: list[str] = []
         reasons: list[str] = []
 
@@ -757,11 +761,34 @@ class PsychoPyKeyboard:
                 if configured and max_score < float(min_score):
                     reason_codes.append("score_below_threshold")
                     reasons.append(
-                        f"最高分{max_score:.6g}低于阈值{float(min_score):.6g}")
+                        f"最高分 {max_score:.3f} < 阈值 {float(min_score):.3f}")
                 if configured and score_margin < float(min_margin):
                     reason_codes.append("margin_below_threshold")
                     reasons.append(
-                        f"第一/第二名分差{score_margin:.6g}低于阈值{float(min_margin):.6g}")
+                        f"第一/第二名分差 {score_margin:.3f} < 阈值 {float(min_margin):.3f}")
+            if cfg.rejection_enabled:
+                epoch = result.get("epoch")
+                eeg = getattr(epoch, "data", None)
+                fs = getattr(epoch, "fs", None)
+                if eeg is None or fs is None:
+                    reason_codes.append("intent_features_missing")
+                    reasons.append("缺少意图门控所需的原始 EEG 窗")
+                else:
+                    try:
+                        alpha_ratio = alpha_power_ratio(eeg, float(fs))
+                    except (ValueError, DegenerateSignalError) as exc:
+                        reason_codes.append("intent_features_invalid")
+                        reasons.append(f"意图门控特征无效：{exc}")
+                    else:
+                        if configured and alpha_ratio > float(max_alpha_ratio):
+                            reason_codes.append("alpha_ratio_above_threshold")
+                            reasons.append(
+                                f"alpha 相对能量 {alpha_ratio:.3f} > 阈值 {float(max_alpha_ratio):.3f}")
+
+        intent_pass = bool(
+            not cfg.rejection_enabled
+            or (alpha_ratio is not None and max_alpha_ratio is not None
+                and alpha_ratio <= float(max_alpha_ratio)))
 
         accepted = bool(
             max_score is not None
@@ -769,7 +796,8 @@ class PsychoPyKeyboard:
             and (not cfg.rejection_enabled or (
                 configured
                 and max_score >= float(min_score)
-                and score_margin >= float(min_margin)))
+                and score_margin >= float(min_margin)
+                and intent_pass))
             and not reason_codes
         )
         if accepted:
@@ -778,15 +806,17 @@ class PsychoPyKeyboard:
             reason_code = None
         else:
             reason_code = "+".join(reason_codes) or "rejected"
-            reason = "拒识：" + "; ".join(reasons)
+            reason = "拒识： " + "; ".join(reasons)
         return {
             "enabled": cfg.rejection_enabled,
             "configured": configured,
             "accepted": accepted,
             "max_score": max_score,
             "score_margin": score_margin,
+            "alpha_ratio": alpha_ratio,
             "min_score": min_score,
             "min_margin": min_margin,
+            "max_alpha_ratio": max_alpha_ratio,
             "reason_code": reason_code,
             "reason_codes": reason_codes,
             "reason": reason,
@@ -803,7 +833,7 @@ class PsychoPyKeyboard:
         return (
             "Rejection thresholds are not configured.\n\n"
             "Before FREE INPUT can add a character, space, or delete action, "
-            "calibrate both thresholds with real EEG while looking at an intended "
+            "calibrate score, margin, and alpha-ratio thresholds with real EEG while looking at an intended "
             "target and while not intending to enter text, then verify them on "
             "independent data.\n\n"
             "FBCCA scores are not probabilities. This gate is not validated "
@@ -909,9 +939,13 @@ class PsychoPyKeyboard:
             record.status = "rejected"
             record.reason = rejection_reason
             self._phase(record, "FEEDBACK")
-            self.header.text = f"FREE | Selection {record.trial_id} | Rejected"
-            self.show_message(rejection_reason + "\n\nNo character added.\n"
-                              "Choose your next character in the next round.", self.cfg.feedback_s)
+            if free:
+                # 拒识是后台门控结果；自由输入保持键盘页，不切到失败提示页。
+                # 试次仍会落盘为 rejected，且不会写入任何字符。
+                self.message.text = ""
+                self.header.text = "FREE | Keep looking at any character"
+                self.footer.text = "SPACE: pause  ·  ESC: stop"
+                return
             return
         self.ledger.apply_prediction(result['prediction'])
         record.text_applied = True

@@ -25,6 +25,7 @@ from .calibration import PersonalCalibration, calibration_settings
 from .acquisition import ContinuousLSL, Epoch, MNEStreamWindow, decode_trial
 from .events import EventMarkers, EventStamp, TrialLedger, TrialRecord
 from .quality import spectral_quality
+from .intent import alpha_power_ratio
 from .recording import (
     ContinuousRecording, SessionRecorder, export_cued_sidecars,
     package_cued_session, package_recording_files,
@@ -49,6 +50,7 @@ __all__ = [
     "mains_noise_diagnostics", "preprocess_lsl_window", "sample_count", "FbccaDecoder",
     "PersonalCalibration", "calibration_settings", "ContinuousLSL", "Epoch", "MNEStreamWindow",
     "decode_trial", "EventMarkers", "EventStamp", "TrialLedger", "TrialRecord", "spectral_quality",
+    "alpha_power_ratio",
     "ContinuousRecording", "SessionRecorder", "export_cued_sidecars", "package_cued_session",
     "package_recording_files", "frame_diagnostics", "itr_bits_per_minute", "make_luminance_table",
     "make_schedule", "output_display_text", "preflight_transport", "print_free_summary",

@@ -71,6 +71,15 @@ def main(*, cfg: Optional[Config] = None) -> dict:
               "此模式需新的在线数据验证准确率。", flush=True)
     else:
         print("[预处理] epoch：沿用当前分析窗独立陷波。", flush=True)
+    if cfg.rejection_enabled:
+        if cfg.rejection_thresholds_configured:
+            print("[自由输入拒识] 已启用："
+                  f"max_score>={cfg.rejection_min_score:.6g}，"
+                  f"margin>={cfg.rejection_min_margin:.6g}，"
+                  f"alpha_ratio<={cfg.rejection_max_alpha_ratio:.6g}；"
+                  "仅作用于 free 模式。", flush=True)
+        else:
+            print("[自由输入拒识] 已启用但阈值未完整配置；未配置前不会写入字符。", flush=True)
     calibration = None
     if cfg.calibration_file:
         model_path = Path(cfg.calibration_file)

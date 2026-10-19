@@ -127,6 +127,7 @@ class Config:
     rejection_enabled: bool = False
     rejection_min_score: Optional[float] = None
     rejection_min_margin: Optional[float] = None
+    rejection_max_alpha_ratio: Optional[float] = None
     record_root: str = "session_records"
     input_unit: str = "AUTO"
     upstream_filter_description: str = "OpenBCI GUI TimeSeriesRaw（用户指定；LSL元数据未必可核实）"
@@ -205,13 +206,15 @@ class Config:
 
     @property
     def rejection_thresholds_configured(self) -> bool:
-        """判断自由输入模式是否完整启用了双阈值拒识。"""
+        """判断自由输入模式是否完整启用了分数、分差和频谱拒识。"""
         return bool(
             self.rejection_enabled
             and self.rejection_min_score is not None
             and self.rejection_min_margin is not None
+            and self.rejection_max_alpha_ratio is not None
             and math.isfinite(float(self.rejection_min_score))
             and math.isfinite(float(self.rejection_min_margin))
+            and math.isfinite(float(self.rejection_max_alpha_ratio))
         )
 
     def validate(self) -> None:
@@ -318,6 +321,10 @@ class Config:
             value = getattr(self, name)
             if value is not None and (not math.isfinite(value) or value < 0):
                 raise ValueError(f"{name} 必须非负且有限")
+        if (self.rejection_max_alpha_ratio is not None
+                and (not math.isfinite(self.rejection_max_alpha_ratio)
+                     or self.rejection_max_alpha_ratio <= 0)):
+            raise ValueError("rejection_max_alpha_ratio 必须为正且有限")
         band_high = max(high for _, high in self.filter_bands)
         _validate_fs(self.target_fs, band_high)
         _validate_line_regression_hz(self.line_regression_hz, self.target_fs)
@@ -338,7 +345,14 @@ class Config:
             if not math.isfinite(self.upstream_lowpass_hz) or self.upstream_lowpass_hz < band_high:
                 raise ValueError(f"已知发布端低通小于{band_high:g} Hz，不能使用当前频带")
 
-CONFIG = Config()
+CONFIG = Config(
+    # 2026-10-19 5秒数据离线校准；只作用于 free 模式，cued 模式不调用拒识门控。
+    rejection_enabled=True,
+    rejection_min_score=0.25934562367893293,
+    rejection_min_margin=0.0,
+    rejection_max_alpha_ratio=2.7631716193293068,
+    rejection_calibration_id="offline_20261019_target12_screen_around_eyes",
+)
 
 def configure_fbcca_profile(cfg: Config, profile: str) -> Config:
     """同时选择子带、谐波和论文融合权重，避免只切换M3频带却仍用3次谐波。
