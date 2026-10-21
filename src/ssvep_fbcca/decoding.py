@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from .config import BENCHMARK_FREQUENCIES_HZ, Config
 from .interfaces import Decoder
@@ -16,15 +16,19 @@ class FbccaDecoder:
     解码器，而无需改动 UI 和试次账本。
     """
 
-    def __init__(self, cfg: Config, *, calibration: Optional[Any] = None):
+    def __init__(self, cfg: Config, *, calibration: Optional[Any] = None,
+                 target_frequencies_hz: Optional[Sequence[float]] = None):
         self.cfg = cfg
         self.calibration = calibration
+        self.target_frequencies_hz = (None if target_frequencies_hz is None else
+                                      tuple(float(value) for value in target_frequencies_hz))
 
     def decode(self, data: Any, fs: float, *, notch_context: Any = None) -> dict[str, Any]:
         cfg = self.cfg
         return classify_eeg_window(
             data, fs, window_s=cfg.window_s, onset_s=0.0,
-            target_frequencies_hz=BENCHMARK_FREQUENCIES_HZ,
+            target_frequencies_hz=(BENCHMARK_FREQUENCIES_HZ if self.target_frequencies_hz is None
+                                   else self.target_frequencies_hz),
             n_harmonics=cfg.n_harmonics, target_fs=cfg.target_fs,
             notch_hz=cfg.notch_hz, a=cfg.weight_a, b=cfg.weight_b,
             regularization=cfg.cca_regularization,

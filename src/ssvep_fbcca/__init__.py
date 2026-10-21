@@ -59,5 +59,7 @@ __all__ = [
     "PsychoPyKeyboard", "calculate_keyboard_layout", "keyboard_layout_info", "cli", "main",
     "observe_lsl_timing", "static_ui_self_test", "ChatBackendError", "ChatMessage",
     "DeepSeekChatBackend",
+    "DEFAULT_DIRECTION_BY_CLASS", "WheelchairBridgeClient", "WheelchairBridgeError",
 ]
 
+from .wheelchair import DEFAULT_DIRECTION_BY_CLASS, WheelchairBridgeClient, WheelchairBridgeError

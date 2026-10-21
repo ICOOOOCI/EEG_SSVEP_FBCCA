@@ -10,6 +10,7 @@ from .analysis import *
 from .interfaces import EegSource, EventSink, TrialSink
 from .intent import *
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
+from .wheelchair import DEFAULT_DIRECTION_BY_CLASS, WheelchairBridgeClient
 
 
 
@@ -22,6 +23,51 @@ GRID_WIDTH_FRACTION = .96
 GRID_HEIGHT_FRACTION = .58
 
 LAYOUT_REFERENCE_SIZE = (1470.0, 960.0)
+
+# Mode selection uses three separated frequencies. The decoder only compares
+# these three references, using the same FBCCA settings as the main keyboard.
+MODE_FREQUENCIES_HZ = (8.0, 10.0, 12.0)
+MODE_NAMES = ("MODE 1", "MODE 2", "MODE 3")
+MODE_DESCRIPTIONS = ("FREE INPUT", "CUED TEST", "DEEPSEEK CHATBOX")
+# Mode menu follows the supplied reference: a nearly black blue-gray canvas,
+# pale lavender selection tiles, and high-contrast black labels.
+MODE_MENU_BG = (-.88, -.84, -.78)
+MODE_TILE = (.90, .84, .96)
+MODE_TILE_BORDER = (-.96, -.96, -.94)
+MODE_LABEL = (-1.0, -1.0, -1.0)
+
+# ChatBox palette follows the supplied keyboard reference: a near-black
+# blue-gray canvas, pale lavender keys, dark labels, and restrained borders.
+# PsychoPy RGB values are in the -1..1 range. Flicker frames are still generated
+# by the existing SSVEP pipeline; these colors are for the stable display only.
+CHAT_BG = (-.91, -.90, -.86)
+CHAT_SURFACE = (.82, .76, .86)       # pale lavender/pink key face
+CHAT_SURFACE_ALT = (.82, .76, .86)
+CHAT_SURFACE_DARK = (-.78, -.76, -.72)
+CHAT_BORDER = (-.42, -.40, -.38)
+CHAT_TEXT = (1.0, 1.0, 1.0)
+CHAT_KEY_TEXT = (-.12, -.13, -.17)
+CHAT_KEY_BORDER = (-.98, -.97, -.94)
+CHAT_MUTED = (.64, .62, .66)
+CHAT_ACCENT = MODE_TILE
+CHAT_ACCENT_DARK = (.82, .76, .86)
+CHAT_SUCCESS = (.82, .76, .86)
+CHAT_WARNING = (1.0, .76, -.30)
+
+# ChatBox has its own two-page keyboard. Mode 1 and mode 2 continue to use
+# TARGETS and the original 40-key layout above this page-specific layer.
+CHATBOX_PAGE1_SYMBOLS = tuple("QWERTYUIOPASDFGHJKLZXCVBNM") + (
+    "123", "SPACE", "SEND", "BACKSPACE")
+CHATBOX_PAGE2_SYMBOLS = tuple("1234567890") + ("ABC", "BACK_MENU")
+CHATBOX_PAGE1_FREQUENCIES_HZ = tuple(
+    float(value) for value in BENCHMARK_FREQUENCIES_HZ[:len(CHATBOX_PAGE1_SYMBOLS)])
+CHATBOX_PAGE2_FREQUENCIES_HZ = tuple(
+    float(value) for value in BENCHMARK_FREQUENCIES_HZ[:len(CHATBOX_PAGE2_SYMBOLS)])
+
+def _chatbox_display_label(symbol: str) -> str:
+    """将 ChatBox 页面内部动作名称转换为屏幕标签。"""
+    return {"BACK_MENU": "←", "BACKSPACE": "←", "ABC": "ABC",
+            "SPACE": "SPACE", "SEND": "SEND", "123": "123"}.get(symbol, symbol)
 
 def _keyboard_ui_scale(width: float, height: float) -> float:
     """顶部输出框和辅助文字随客户区等比例缩放。"""
@@ -130,9 +176,10 @@ def _create_keyboard_window(visual: Any, cfg: Config) -> Any:
     screen = screens[cfg.screen_index]
     if cfg.full_screen:
         size = (screen.width, screen.height)
+    background = CHAT_BG if cfg.session_mode == "chatbox" else MODE_MENU_BG
     win = visual.Window(size=size, fullscr=cfg.full_screen, screen=cfg.screen_index,
         winType="pyglet", useRetina=True,
-        units="pix", color=(-.78, -.77, -.73), colorSpace="rgb", waitBlanking=True,
+        units="pix", color=background, colorSpace="rgb", waitBlanking=True,
         allowGUI=not cfg.full_screen, checkTiming=False, autoLog=False)
     win.keyboard_display_size = np.asarray((screen.width, screen.height), dtype=float)
     return win
@@ -189,12 +236,14 @@ class PsychoPyKeyboard:
 
     def __init__(self, cfg: Config, collector: EegSource, markers: Optional[EventSink],
                  ledger: TrialLedger, recorder: Optional[TrialSink] = None,
-                 *, static_only: bool = False):
+                 *, static_only: bool = False,
+                 wheelchair: Optional[WheelchairBridgeClient] = None):
         """绑定会话组件并在主线程创建 PsychoPy 窗口和视觉刺激。"""
         MainThreadGraphicsGC._check_thread()
         from psychopy import visual, event, logging
         self.cfg, self.collector, self.markers, self.ledger = cfg, collector, markers, ledger
         self.recorder = recorder
+        self.wheelchair = wheelchair
         self.static_only = static_only
         self.fatal_fault: Optional[dict] = None
         self.trial_faults: list[dict] = []
@@ -279,43 +328,91 @@ class PsychoPyKeyboard:
         self.output_text = visual.TextStim(self.win, text="", pos=(0, output_y),
             height=output_font_height, wrapWidth=output_text_width,
             font="Courier New", color="white", alignText="left", anchorHoriz="center", autoLog=False)
+        if cfg.session_mode == "chatbox":
+            self.output_box.fillColor = CHAT_SURFACE_DARK
+            self.output_box.lineColor = "#FFE45C"
+            self.output_box.lineWidth = max(1.5, 2 * ui_scale)
+            self.output_text.color = CHAT_TEXT
+            self.output_text.font = "Courier New"
+            self.output_text.height = min(30, max(18, cfg.output_box_height_px * 0.40)) * ui_scale
+        self.output_caption = visual.TextStim(
+            self.win, text="YOUR MESSAGE" if cfg.session_mode == "chatbox" else "",
+            pos=(-output_width / 2 + 22 * ui_scale, output_y + output_height * .30),
+            height=13 * ui_scale, font="Arial", color="#FFE45C" if cfg.session_mode == "chatbox" else "white",
+            bold=True, alignText="left", anchorHoriz="left", autoLog=False)
         self.output_box.autoDraw = False
         self.output_text.autoDraw = False
+        self.output_caption.autoDraw = False
         self._output_max_chars = max(12, int(output_text_width / output_font_height))
         self._sync_output_text(force=True)
         self.header = visual.TextStim(self.win, text="",
             pos=(0, output_y - output_height/2 - 22*ui_scale),
             height=24*ui_scale, wrapWidth=width-40*ui_scale, color="white", autoLog=False)
+        if cfg.session_mode == "chatbox":
+            self.header.height = 20 * ui_scale
+            self.header.color = "white"
+            self.header.bold = True
+            self.header.pos = (0, height * .265)
         self.cue_title = visual.TextStim(self.win, text="TARGET", pos=self.header.pos,
             height=34*ui_scale, wrapWidth=width-40*ui_scale,
             color="#FFE45C", bold=True, autoLog=False)
         self.footer = visual.TextStim(self.win, text="",
             pos=(0, -height/2+18*ui_scale), height=18*ui_scale, wrapWidth=width-40*ui_scale,
             color="white", autoLog=False)
+        if cfg.session_mode == "chatbox":
+            self.footer.height = 16 * ui_scale
+            self.footer.color = "white"
+            self.footer.pos = (0, -height * .40)
         self.message = visual.TextStim(self.win, text="", pos=(0, -15*ui_scale),
             height=26*ui_scale, wrapWidth=width*.88, color="white", autoLog=False)
         menu_font = "Arial"
-        self.mode_title = visual.TextStim(self.win, text="Select mode", pos=(0, 165*ui_scale),
-            height=34*ui_scale, font=menu_font, color="white", autoLog=False)
-        self.mode_positions = {"free": (0, 82*ui_scale), "cued": (0, 0),
-                               "chatbox": (0, -82*ui_scale)}
-        self.mode_outline = visual.Rect(self.win, width=min(460*ui_scale, width*.8),
-            height=76*ui_scale, fillColor=None, lineColor="#FFE45C",
-            lineWidth=max(1, 2*ui_scale), units="pix", autoLog=False)
-        self.mode_labels = {
-            "free": visual.TextStim(self.win, text="1  Free spelling", pos=self.mode_positions["free"],
-                height=28*ui_scale, font=menu_font, color="white", autoLog=False),
-            "cued": visual.TextStim(self.win, text="2  Cued test", pos=self.mode_positions["cued"],
-                height=28*ui_scale, font=menu_font, color="white", autoLog=False),
-            "chatbox": visual.TextStim(self.win, text="3  ChatBox  (DeepSeek)", pos=self.mode_positions["chatbox"],
-                height=28*ui_scale, font=menu_font, color="white", autoLog=False),
-        }
-        self.mode_hint = visual.TextStim(self.win, text="1/2/3: select  ·  Enter / Space: start  ·  Esc: exit",
+        self.mode_title = visual.TextStim(self.win, text="SELECT MODE",
+            pos=(0, height*.30), height=42*ui_scale, font=menu_font,
+            color="white", autoLog=False)
+        mode_square_size = min(300*ui_scale, width*.17, height*.28)
+        mode_gap = max(48*ui_scale, mode_square_size*.82)
+        mode_total_width = 3 * mode_square_size + 2 * mode_gap
+        if mode_total_width > width*.86:
+            mode_square_size *= width*.86 / mode_total_width
+            mode_gap = max(36*ui_scale, mode_square_size*.82)
+        mode_y = 0.0
+        mode_x = mode_square_size + mode_gap
+        self.mode_positions = np.asarray(((-mode_x, mode_y), (0.0, mode_y),
+                                          (mode_x, mode_y)), dtype=float)
+        self.mode_key_size = mode_square_size
+        self.mode_static_colors = np.tile(MODE_TILE, (3, 1))
+        self.mode_squares = visual.ElementArrayStim(self.win, nElements=3, units="pix",
+            xys=self.mode_positions, sizes=(mode_square_size, mode_square_size),
+            elementTex=None, elementMask=None, colors=self.mode_static_colors,
+            colorSpace="rgb", autoLog=False)
+        self.mode_borders = visual.ElementArrayStim(self.win, nElements=3, units="pix",
+            xys=self.mode_positions, sizes=(mode_square_size + 4*ui_scale,
+                                            mode_square_size + 4*ui_scale), elementTex=None,
+            elementMask=None, colors=np.tile(MODE_TILE_BORDER, (3, 1)),
+            colorSpace="rgb", autoLog=False)
+        self.mode_outline = visual.Rect(self.win, width=mode_square_size + 18*ui_scale,
+            height=mode_square_size + 18*ui_scale, fillColor=None, lineColor="#FFE45C",
+            lineWidth=max(1, 3*ui_scale), units="pix", autoLog=False)
+        self.mode_labels = []
+        mode_label_text = ("MODE 1\nFREE INPUT", "MODE 2\nCUED TEST",
+                           "MODE 3\nDEEPSEEK\nCHATBOX")
+        for index, label_text in enumerate(mode_label_text):
+            self.mode_labels.append(visual.TextStim(
+                self.win, text=label_text, pos=self.mode_positions[index],
+                height=mode_square_size*.13, wrapWidth=mode_square_size*.9,
+                font=menu_font, color=MODE_LABEL, bold=True, autoLog=False))
+        self.mode_status = visual.TextStim(self.win, text="",
+            pos=(0, -height/2 + 125*ui_scale), height=20*ui_scale,
+            font=menu_font, color="#BDBDC6", autoLog=False)
+        self.mode_hint = visual.TextStim(self.win,
+            text="",
             pos=(0, -height/2 + 82*ui_scale), height=20*ui_scale,
             font=menu_font, color="white", autoLog=False)
-        self.mode_warning = visual.TextStim(self.win, text="Warning: starting will show 8–15.8 Hz visual flicker · Esc: stop",
+        self.mode_warning = visual.TextStim(self.win,
+            text="Visual flicker from 8–15.8 Hz will start  ·  Press ESC if uncomfortable",
             pos=(0, -height/2 + 46*ui_scale), height=18*ui_scale,
             font=menu_font, color="#FFCB52", autoLog=False)
+        self.mode_rgb_frames = np.empty((0, 3, 3))
         self.startup_title = visual.TextStim(self.win, text="Checking display",
             pos=(0, height/2 - 64*ui_scale), height=34*ui_scale,
             font=menu_font, color="white", autoLog=False)
@@ -384,22 +481,33 @@ class PsychoPyKeyboard:
         self.rest_auto_label = visual.TextStim(self.win, text="Resumes automatically",
             pos=(0, -height*.19), height=18*ui_scale,
             font=menu_font, color="#BDBDC6", autoLog=False)
-        # 模式三的聊天页复用同一个 PsychoPy 窗口，但隐藏40键，只显示消息历史。
-        self.chat_title = visual.TextStim(self.win, text="DeepSeek ChatBox",
-            pos=(0, height*.41), height=34*ui_scale, font=menu_font,
+        # Mode 3 reuses this window for the ChatBox keyboard and chat history.
+        self.chat_title = visual.TextStim(self.win, text="MODE 3  ·  CHATBOX",
+            pos=(0, height*.41), height=32*ui_scale, font=menu_font,
             color="#FFE45C", bold=True, autoLog=False)
-        self.chat_panel = visual.Rect(self.win, width=width*.86, height=height*.68,
-            pos=(0, height*.0), fillColor=(-.88, -.88, -.86), lineColor="#64646D",
-            lineWidth=max(1, 1.5*ui_scale), units="pix", autoLog=False)
-        self.chat_history_text = visual.TextStim(self.win, text="", pos=(-width*.39, height*.29),
-            height=18*ui_scale, wrapWidth=width*.76, font=menu_font, color="white",
+        self.chat_panel = visual.Rect(self.win, width=width*.88, height=height*.70,
+            pos=(0, height*.0), fillColor=CHAT_SURFACE_DARK, lineColor=CHAT_BORDER,
+            lineWidth=max(2, 2.5*ui_scale), units="pix", autoLog=False)
+        self.chat_history_caption = visual.TextStim(
+            self.win, text="CONVERSATION", pos=(-width*.34, height*.30),
+            height=14*ui_scale, font=menu_font, color="#FFE45C", bold=True,
+            alignText="left", anchorHoriz="left", autoLog=False)
+        self.chat_history_rule = visual.Line(
+            self.win, start=(-width*.34, height*.265), end=(width*.34, height*.265),
+            lineColor=CHAT_BORDER, lineWidth=max(1, ui_scale), units="pix", autoLog=False)
+        self.chat_history_text = visual.TextStim(self.win, text="", pos=(-width*.34, height*.245),
+            height=20*ui_scale, wrapWidth=width*.68, font=menu_font, color=CHAT_TEXT,
             alignText="left", anchorHoriz="left", anchorVert="top", autoLog=False)
-        self.chat_status = visual.TextStim(self.win, text="", pos=(0, -height*.39),
-            height=18*ui_scale, wrapWidth=width*.86, font=menu_font, color="#BDBDC6",
+        self.chat_status_rule = visual.Line(
+            self.win, start=(-width*.34, -height*.325), end=(width*.34, -height*.325),
+            lineColor=CHAT_BORDER, lineWidth=max(1, ui_scale), units="pix", autoLog=False)
+        self.chat_status = visual.TextStim(self.win, text="", pos=(0, -height*.37),
+            height=18*ui_scale, wrapWidth=width*.76, font=menu_font, color="#FFE45C",
             autoLog=False)
-        self.chat_hint = visual.TextStim(self.win, text="Press Enter to return to the 40-key keyboard  ·  ESC: exit",
+        self.chat_hint = visual.TextStim(self.win, text="ENTER 继续输入    ·    ESC 退出",
             pos=(0, -height*.46), height=16*ui_scale, font=menu_font,
-            color="white", autoLog=False)
+            color=CHAT_MUTED, autoLog=False)
+        self._build_chatbox_page_visuals(width, height, ui_scale, menu_font)
         for _ in range(30):
             self._check_abort()
             self._draw_startup_check()
@@ -409,6 +517,19 @@ class PsychoPyKeyboard:
             raise RuntimeError("未测得足够稳定的刷新率；不以猜测的60Hz继续实验")
         self.refresh_hz = float(refresh)
         self.win.refreshThreshold = cfg.frame_long_factor / self.refresh_hz
+        mode_frames = max(1, math.ceil(cfg.stimulus_s * self.refresh_hz) + 1)
+        mode_t = np.arange(mode_frames)[:, None] / self.refresh_hz
+        mode_freqs = np.asarray(MODE_FREQUENCIES_HZ, dtype=float)[None, :]
+        mode_luminance = .5 * (1 + np.sin(2 * np.pi * mode_t * mode_freqs))
+        self.mode_rgb_frames = np.repeat((2 * mode_luminance - 1)[:, :, None], 3, axis=2)
+        self.chat_rgb_frames = {}
+        for page, frequencies in ((1, CHATBOX_PAGE1_FREQUENCIES_HZ),
+                                  (2, CHATBOX_PAGE2_FREQUENCIES_HZ)):
+            frames = max(1, math.ceil(cfg.stimulus_s * self.refresh_hz) + 1)
+            t = np.arange(frames)[:, None] / self.refresh_hz
+            freqs = np.asarray(frequencies, dtype=float)[None, :]
+            luminance = .5 * (1 + np.sin(2 * np.pi * t * freqs))
+            self.chat_rgb_frames[page] = np.repeat((2 * luminance - 1)[:, :, None], 3, axis=2)
         durations = {"free": cfg.stimulus_s, "cued": cfg.cued_stimulus_s}
         self.luminance_by_mode = {
             mode: (np.empty((0, len(TARGETS))) if self.static_only else
@@ -459,7 +580,119 @@ class PsychoPyKeyboard:
                 mode: {"frames": len(frames), "scheduled_s": len(frames) / self.refresh_hz}
                 for mode, frames in self.rgb_frames_by_mode.items()
             },
+            "mode_selection": {
+                "layout": "left_to_right",
+                "labels": list(MODE_NAMES),
+                "frequencies_hz": list(MODE_FREQUENCIES_HZ),
+                "frames": len(self.mode_rgb_frames),
+                "scheduled_s": len(self.mode_rgb_frames) / self.refresh_hz,
+                "control": "ssvep",
+            },
+            "chatbox_keyboard": {
+                "pages": {
+                    str(page): {"layout": "custom", "symbols": list(symbols),
+                                "frequencies_hz": list(frequencies),
+                                "frames": len(self.chat_rgb_frames[page]),
+                                "scheduled_s": len(self.chat_rgb_frames[page]) / self.refresh_hz}
+                    for page, symbols, frequencies in (
+                        (1, CHATBOX_PAGE1_SYMBOLS, CHATBOX_PAGE1_FREQUENCIES_HZ),
+                        (2, CHATBOX_PAGE2_SYMBOLS, CHATBOX_PAGE2_FREQUENCIES_HZ))
+                },
+                "page1_backspace_action": "delete_last_character",
+                "page_switch_actions": {"123": "numbers", "ABC": "letters"},
+                "page2_arrow_action": "return_to_mode_menu",
+                "send_action": "submit_chat_draft",
+            },
             "static_render_check": check, "physical_timing_measured": False, "luminance_gamma_calibrated": False}
+
+    def _build_chatbox_page_visuals(self, width: float, height: float,
+                                    ui_scale: float, menu_font: str) -> None:
+        """Build a compact, aligned ChatBox keyboard matching the supplied UI reference.
+
+        The two-page SSVEP action order is deliberately unchanged: page 1 contains
+        letters plus 123/SPACE/SEND/backspace, and page 2 contains digits. Visual
+        positions may change without changing the decoder's class-to-symbol map.
+        """
+        visual = self.visual
+        key = min(96.0 * ui_scale, width * .078, height * .115)
+        gap = max(7.0 * ui_scale, key * .12)
+        step = key + gap
+        # Four clear horizontal bands, with the alphabet arranged like a familiar
+        # physical keyboard. Leave a comfortable gap between the output/header and
+        # the top row, and reserve the bottom edge for the status hint.
+        row_y = (height * .155, height * .045, -height * .065, -height * .245)
+        page_layouts: dict[int, list[tuple[str, tuple[float, float], tuple[float, float]]]] = {
+            1: [], 2: []}
+
+        def centered_row(symbols: Sequence[str], y: float) -> list[tuple[str, tuple[float, float], tuple[float, float]]]:
+            start_x = -(len(symbols) - 1) * step / 2
+            return [(symbol, (start_x + index * step, y), (key, key))
+                    for index, symbol in enumerate(symbols)]
+
+        # LETTERS: rows follow QWERTY proportions, with backspace at the right
+        # end of the home row as in the reference image.
+        page_layouts[1].extend(centered_row(tuple("QWERTYUIOP"), row_y[0]))
+        home_start_x = -(10 - 1) * step / 2
+        page_layouts[1].extend([
+            (symbol, (home_start_x + index * step, row_y[1]), (key, key))
+            for index, symbol in enumerate(tuple("ASDFGHJKL"))
+        ])
+        page_layouts[1].extend(centered_row(tuple("ZXCVBNM"), row_y[2]))
+        control_y = row_y[3]
+        page_layouts[1].extend([
+            ("123", (-width * .34, control_y), (key * 1.48, key * .88)),
+            ("SPACE", (0.0, control_y), (key * 2.65, key * .88)),
+            ("SEND", (width * .34, control_y), (key * 1.55, key * .88)),
+        ])
+        # Appending backspace last preserves the class order while placing it
+        # at the right end of the home row, matching the reference keyboard.
+        page_layouts[1].append(("BACKSPACE", (home_start_x + 9 * step, row_y[1]), (key, key)))
+
+        # NUMBERS: a single ten-key row plus explicit ABC and menu-return keys.
+        # This lets users switch back and forth between the two keyboard modes.
+        page_layouts[2].extend(centered_row(tuple("1234567890"), row_y[0]))
+        page_layouts[2].append(("ABC", (-width * .34, row_y[1]), (key * 1.45, key * .88)))
+        page_layouts[2].append(("BACK_MENU", (width * .34, row_y[1]), (key, key)))
+
+        # Keep the old attributes available for diagnostics, but use a clean flat
+        # keyboard rather than the oversized panel and extra divider from the old UI.
+        self.chat_keyboard_panel = visual.Rect(
+            self.win, width=width * .88, height=height * .54,
+            pos=(0, -height * .06), fillColor=CHAT_BG,
+            lineColor=CHAT_BG, lineWidth=0,
+            units="pix", autoLog=False)
+        self.chat_page_label = visual.TextStim(
+            self.win, text="", pos=(-width * .36, height * .175),
+            height=17 * ui_scale, font=menu_font, color=CHAT_TEXT, bold=True,
+            alignText="left", anchorHoriz="left", autoLog=False)
+        self.chat_page_helper = visual.TextStim(
+            self.win, text="SSVEP  ·  FIXATE ON A KEY",
+            pos=(width * .36, height * .175), height=13 * ui_scale, font=menu_font,
+            color=CHAT_MUTED, alignText="right", anchorHoriz="right", autoLog=False)
+        self.chat_keyboard_rule = visual.Line(
+            self.win, start=(-width * .36, height * .145), end=(width * .36, height * .145),
+            lineColor=CHAT_BG, lineWidth=0, units="pix", autoLog=False)
+
+        self.chat_page_visuals: dict[int, list[dict[str, Any]]] = {}
+        self.chat_page_positions: dict[int, np.ndarray] = {}
+        for page, layout_items in page_layouts.items():
+            visuals = []
+            self.chat_page_positions[page] = np.asarray([item[1] for item in layout_items], dtype=float)
+            for symbol, position, size in layout_items:
+                border = visual.Rect(self.win, width=size[0] + 5 * ui_scale,
+                    height=size[1] + 5 * ui_scale, pos=position,
+                    fillColor=CHAT_KEY_BORDER, lineColor=CHAT_KEY_BORDER,
+                    units="pix", colorSpace="rgb", autoLog=False)
+                square = visual.Rect(self.win, width=size[0], height=size[1], pos=position,
+                    fillColor=CHAT_SURFACE, lineColor=CHAT_SURFACE,
+                    units="pix", colorSpace="rgb", autoLog=False)
+                label_height = min(27 * ui_scale, size[1] * (.23 if symbol in ("SPACE", "BACK_MENU") else .34))
+                label = visual.TextStim(self.win, text=_chatbox_display_label(symbol), pos=position,
+                    height=label_height, wrapWidth=size[0] * .90, font=menu_font,
+                    color=CHAT_KEY_TEXT, bold=False, autoLog=False)
+                visuals.append({"symbol": symbol, "shadow": border, "border": border, "square": square,
+                                "label": label, "position": position, "size": size})
+            self.chat_page_visuals[page] = visuals
 
     def _measure_refresh_rate(self) -> Optional[float]:
         """在静态键盘上测量刷新率，避免 PsychoPy 绘制独立的等待画面。"""
@@ -507,13 +740,116 @@ class PsychoPyKeyboard:
         """仅在文本变化或强制刷新时更新顶部输出框。"""
         text = self.ledger.typed_text
         if force or text != self._output_cache:
-            self.output_text.text = output_display_text(text, self._output_max_chars)
+            rendered = output_display_text(text, self._output_max_chars)
+            self.output_text.text = rendered
             self._output_cache = text
 
     def _draw_status(self) -> None:
         """绘制当前页面通用的页眉和页脚。"""
         self.header.draw()
         self.footer.draw()
+
+    def _draw_chatbox_keyboard(self, page: int, *, flicker_rgb: Optional[np.ndarray] = None,
+                               selected_index: Optional[int] = None) -> None:
+        """绘制模式三的自定义 ChatBox 键盘页面。"""
+        self._sync_output_text()
+        self._draw_status()
+        for index, item in enumerate(self.chat_page_visuals[page]):
+            if flicker_rgb is None:
+                item["square"].fillColor = CHAT_SURFACE
+                item["square"].lineColor = CHAT_SURFACE
+            else:
+                item["square"].fillColor = tuple(map(float, flicker_rgb[index, :3]))
+            item["border"].fillColor = "#FFE45C" if index == selected_index else CHAT_KEY_BORDER
+            item["border"].lineColor = item["border"].fillColor
+            item["border"].draw()
+            item["square"].draw()
+            item["label"].draw()
+
+    def _chatbox_page_symbols(self, page: int) -> tuple[str, ...]:
+        """返回指定 ChatBox 页面的动作顺序，与视觉对象和解码器一致。"""
+        return CHATBOX_PAGE1_SYMBOLS if page == 1 else CHATBOX_PAGE2_SYMBOLS
+
+    def _chatbox_global_class(self, symbol: str) -> Optional[int]:
+        """将普通字母/数字/空格映射到原有40键目标，供账本和记录复用。"""
+        for target in TARGETS:
+            if target.symbol == symbol:
+                return target.class_id
+        return None
+
+    def _persist_chatbox_selection(self, selection_id: int, symbol: str,
+                                   result: dict[str, Any]) -> TrialRecord:
+        """记录 ChatBox 选择；导航动作落为 rejected，不写入正文。"""
+        record = TrialRecord(selection_id, 1, None, mode="free", start=self.clock())
+        global_class = self._chatbox_global_class(symbol)
+        if global_class is not None:
+            record.result = dict(result)
+            record.result.update(trial_id=selection_id, prediction=global_class,
+                                 fbcca_prediction=global_class, cca_prediction=global_class)
+            self.ledger.apply_prediction(global_class)
+            record.text_applied = True
+            record.status = "valid"
+        else:
+            record.status = "rejected"
+            record.reason = f"ChatBox action: {symbol}"
+        record.end = self.clock()
+        self._phase(record, "COMPLETE")
+        self.ledger.commit(record)
+        self._persist_trial(record)
+        self._release_free_eeg(record)
+        self._sync_output_text(force=True)
+        return record
+
+    def _run_chatbox_selection(self, page: int, selection_id: int) -> tuple[str, dict[str, Any]]:
+        """呈现一页 ChatBox SSVEP 刺激并返回页面内动作及解码结果。"""
+        symbols = self._chatbox_page_symbols(page)
+        frames = self.chat_rgb_frames[page]
+        self.header.text = ("MODE 3  /  LETTERS  /  Select a key" if page == 1
+                            else "MODE 3  /  NUMBERS  /  Select a key")
+        self.footer.text = ("123: numbers  ·  ←: delete  ·  ESC: exit" if page == 1
+                            else "ABC: letters  ·  ←: mode menu  ·  ESC: exit")
+        onset_event = EventStamp("chatbox_stimulus_onset", selection_id,
+                                 details={"page": page, "symbols": list(symbols),
+                                          "frequencies_hz": list(
+                                              CHATBOX_PAGE1_FREQUENCIES_HZ if page == 1
+                                              else CHATBOX_PAGE2_FREQUENCIES_HZ)})
+        offset_event = EventStamp("chatbox_stimulus_offset", selection_id)
+        self.win.recordFrameIntervals = True
+        self.win.frameIntervals = []
+        try:
+            for frame_index, frame in enumerate(frames):
+                self._check_abort()
+                self._draw_chatbox_keyboard(page, flicker_rgb=frame)
+                if frame_index == 0:
+                    self.win.callOnFlip(self.markers.mark, onset_event)
+                self.win.flip()
+            self.win.callOnFlip(self.markers.mark, offset_event)
+            self.win.flip()
+        finally:
+            self.win.recordFrameIntervals = False
+        if onset_event.timestamp is None or offset_event.timestamp is None:
+            raise RuntimeFault("DISPLAY", "ChatBox stimulus event marker missing")
+        if self.markers.error is not None:
+            raise RuntimeFault("LSL_CONNECTION", f"LSL Marker send failed: {self.markers.error}")
+        self.footer.text = "Analyzing EEG  ·  keep looking at the selected key  ·  ESC: exit"
+        self._active_decode_cancel = threading.Event()
+        self._decode_future = self.executor.submit(
+            decode_trial, selection_id, onset_event.timestamp, self.collector,
+            self.cfg, self._active_decode_cancel)
+        while (not self._decode_future.done()
+               or self.clock() < offset_event.timestamp + self.cfg.blank_min_s):
+            self._check_abort()
+            self._draw_chatbox_keyboard(page)
+            self.win.flip()
+        try:
+            result = self._decode_future.result()
+        finally:
+            self._decode_future = None
+            self._active_decode_cancel = None
+        prediction = int(result["prediction"])
+        if not 1 <= prediction <= len(symbols):
+            raise InvalidTrial(f"ChatBox prediction out of range: {prediction}")
+        return symbols[prediction - 1], result
 
     def _draw_processing_status(self, record: TrialRecord) -> None:
         """绘制等待 EEG 解码结果的状态页。"""
@@ -567,7 +903,10 @@ class PsychoPyKeyboard:
         """绘制模式三聊天窗口，不呈现40键闪烁。"""
         self.chat_panel.draw()
         self.chat_title.draw()
+        self.chat_history_caption.draw()
+        self.chat_history_rule.draw()
         self.chat_history_text.draw()
+        self.chat_status_rule.draw()
         self.chat_status.draw()
         self.chat_hint.draw()
 
@@ -590,6 +929,7 @@ class PsychoPyKeyboard:
             return
         self.output_box.autoDraw = False
         self.output_text.autoDraw = False
+        self.output_caption.autoDraw = False
         self._chat_history.append(ChatMessage("user", text))
         self.chat_history_text.text = self._format_chat_history()
         self.chat_status.text = "DeepSeek is replying..."
@@ -599,7 +939,8 @@ class PsychoPyKeyboard:
                     model=self.cfg.deepseek_model,
                     endpoint=self.cfg.deepseek_api_url,
                     timeout=self.cfg.deepseek_timeout_s,
-                    api_key_env=self.cfg.deepseek_api_key_env)
+                    api_key_env=self.cfg.deepseek_api_key_env,
+                    api_key_file=self.cfg.deepseek_api_key_file)
             request_history = list(self._chat_history[:-1])[-20:]
             if self.cfg.deepseek_system_prompt:
                 request_history.insert(0, ChatMessage("system", self.cfg.deepseek_system_prompt))
@@ -623,6 +964,7 @@ class PsychoPyKeyboard:
         finally:
             self.output_box.autoDraw = True
             self.output_text.autoDraw = True
+            self.output_caption.autoDraw = self.cfg.session_mode == "chatbox"
 
     def _chat_submit_requested(self) -> bool:
         """消费一次物理回车请求；没有草稿时回车不会打断连续输入。"""
@@ -1062,6 +1404,19 @@ class PsychoPyKeyboard:
                 self.footer.text = "SPACE: pause  ·  ESC: stop"
                 return
             return
+        if self.wheelchair is not None:
+            direction = DEFAULT_DIRECTION_BY_CLASS.get(int(result['prediction']))
+            if direction is not None:
+                try:
+                    self.wheelchair.move(direction)
+                    print(f"[轮椅] class={result['prediction']} -> {direction}", flush=True)
+                except Exception as exc:
+                    # 轮椅网络故障不能悄悄变成继续运动；发送STOP后结束本试次。
+                    try:
+                        self.wheelchair.stop(disarm=True)
+                    except Exception:
+                        pass
+                    raise RuntimeError(f"轮椅动作发送失败：{exc}") from exc
         self.ledger.apply_prediction(result['prediction'])
         record.text_applied = True
         record.status = "valid"
@@ -1156,55 +1511,129 @@ class PsychoPyKeyboard:
         result = self._await_trial_result(record, onset_event, offset_event)
         self._apply_trial_result(record, result, target)
 
-    def _draw_mode_menu(self, selected: str) -> None:
-        """绘制模式选择菜单并标出当前选项。"""
+    def _draw_mode_menu(self, selected: Optional[int] = None,
+                        flicker_rgb: Optional[np.ndarray] = None) -> None:
+        """绘制从左到右的三个模式方块，可按帧更新 SSVEP 亮度。"""
+        if isinstance(selected, str):
+            selected = {"free": 0, "cued": 1, "chatbox": 2}.get(selected)
         self.mode_title.draw()
-        self.mode_outline.pos = self.mode_positions[selected]
-        self.mode_outline.draw()
-        for label in self.mode_labels.values():
+        if flicker_rgb is None:
+            self.mode_squares.colors = self.mode_static_colors
+        else:
+            self.mode_squares.colors = flicker_rgb
+        self.mode_borders.draw()
+        self.mode_squares.draw()
+        for label in self.mode_labels:
             label.draw()
+        if selected is not None:
+            self.mode_outline.pos = self.mode_positions[selected]
+            self.mode_outline.draw()
+        self.mode_status.draw()
         self.mode_hint.draw()
         self.mode_warning.draw()
 
     def _select_mode(self) -> str:
-        """等待用户选择自由输入、提示测试或 DeepSeek ChatBox。"""
+        """通过三个横向 SSVEP 方块选择自由输入、提示测试或 ChatBox。"""
         self._pause_enabled = False
-        selected = self.cfg.session_mode
-        mode_keys = ["1", "2", "3", "num_1", "num_2", "num_3",
-                     "space", "return", "num_enter"]
-        self.event.getKeys(keyList=mode_keys)
         self.output_box.autoDraw = False
         self.output_text.autoDraw = False
+        self.output_caption.autoDraw = False
+        mode_names = ("free", "cued", "chatbox")
+        previous_decoder = getattr(self.collector, "decoder", None)
+        from .decoding import FbccaDecoder
+        self.collector.decoder = FbccaDecoder(
+            self.cfg, calibration=None,
+            target_frequencies_hz=MODE_FREQUENCIES_HZ)
+        trial_id = 0
         try:
+            self.event.getKeys(keyList=["escape"])
             while True:
+                trial_id += 1
                 self._check_abort()
-                keys = self.event.getKeys(keyList=mode_keys)
-                if "1" in keys or "num_1" in keys:
-                    selected = "free"
-                if "2" in keys or "num_2" in keys:
-                    selected = "cued"
-                if "3" in keys or "num_3" in keys:
-                    selected = "chatbox"
-                self._draw_mode_menu(selected)
-                self.win.flip()
-                if any(k in keys for k in ("space", "return", "num_enter")):
-                    self.cfg.session_mode = selected
-                    labels = {"free": "Free spelling", "cued": "Cued test",
-                              "chatbox": "DeepSeek ChatBox"}
-                    print("\nSelected mode: " + labels[selected], flush=True)
-                    return selected
+                self.mode_status.text = "Look at one square. Presenting SSVEP stimulus..."
+                onset_event = EventStamp(
+                    "mode_stimulus_onset", trial_id, details={
+                        "frequencies_hz": list(MODE_FREQUENCIES_HZ),
+                        "labels": list(MODE_NAMES), "control": "ssvep"})
+                offset_event = EventStamp("mode_stimulus_offset", trial_id)
+                frame_flip_times: list[float] = []
+                self.win.recordFrameIntervals = True
+                self.win.frameIntervals = []
+                try:
+                    for frame, rgb in enumerate(self.mode_rgb_frames):
+                        self._check_abort()
+                        self._draw_mode_menu(flicker_rgb=rgb)
+                        if frame == 0:
+                            self.win.callOnFlip(self.markers.mark, onset_event)
+                        flip_time = self.win.flip()
+                        frame_flip_times.append(float(flip_time))
+                    self.win.callOnFlip(self.markers.mark, offset_event)
+                    frame_flip_times.append(float(self.win.flip()))
+                finally:
+                    self.win.recordFrameIntervals = False
+                if onset_event.timestamp is None or offset_event.timestamp is None:
+                    raise RuntimeFault("DISPLAY", "模式选择刺激事件标记缺失")
+                if self.markers.error is not None:
+                    raise RuntimeFault("LSL_CONNECTION", f"LSL Marker发送失败：{self.markers.error}")
+
+                self.mode_status.text = "Analyzing EEG. Keep looking at the square..."
+                cancel = threading.Event()
+                self._active_decode_cancel = cancel
+                self._decode_future = self.executor.submit(
+                    decode_trial, trial_id, onset_event.timestamp, self.collector,
+                    self.cfg, cancel)
+                while (not self._decode_future.done()
+                       or self.clock() < offset_event.timestamp + self.cfg.blank_min_s):
+                    self._check_abort()
+                    self._draw_mode_menu()
+                    self.win.flip()
+                try:
+                    result = self._decode_future.result()
+                except InvalidTrial as exc:
+                    self._decode_future = None
+                    self._active_decode_cancel = None
+                    self.mode_status.text = f"Selection failed: {exc}. Retrying..."
+                    retry_started = self.clock()
+                    while self.clock() - retry_started < self.cfg.feedback_s:
+                        self._check_abort()
+                        self._draw_mode_menu()
+                        self.win.flip()
+                    continue
+                self._decode_future = None
+                self._active_decode_cancel = None
+                prediction = int(result["prediction"])
+                if not 1 <= prediction <= len(mode_names):
+                    raise InvalidTrial(f"模式选择预测类别超出范围：{prediction}")
+                selected = prediction - 1
+                self.mode_status.text = f"Selected {MODE_NAMES[selected]}. Starting..."
+                selected_started = self.clock()
+                while self.clock() - selected_started < self.cfg.feedback_s:
+                    self._check_abort()
+                    self._draw_mode_menu(selected=selected)
+                    self.win.flip()
+                self.cfg.session_mode = mode_names[selected]
+                print(f"\nSelected mode by SSVEP: {MODE_NAMES[selected]} ({MODE_FREQUENCIES_HZ[selected]:.1f} Hz)",
+                      flush=True)
+                return mode_names[selected]
         finally:
+            self._cancel_decode()
+            self.collector.decoder = previous_decoder
             self.output_box.autoDraw = True
             self.output_text.autoDraw = True
+            self.output_caption.autoDraw = self.cfg.session_mode == "chatbox"
 
     def run(self) -> str:
         """进入模式选择并运行所选会话，返回结束原因。"""
         if self.static_only:
             raise RuntimeFault("DISPLAY", "静态自检不能启动实验")
-        mode = self._select_mode()
-        if mode == "chatbox":
-            return self._run_chatbox()
-        return self._run_free() if mode == "free" else self._run_cued()
+        while True:
+            mode = self._select_mode()
+            if mode == "chatbox":
+                reason = self._run_chatbox()
+                if reason == "RETURN_TO_MODE_MENU":
+                    continue
+                return reason
+            return self._run_free() if mode == "free" else self._run_cued()
 
     def _wait_free_pause(self, message: str) -> None:
         """暂停自由输入，等待解码任务结束并由用户恢复。"""
@@ -1337,78 +1766,60 @@ class PsychoPyKeyboard:
             self._cancel_decode()
 
     def _run_chatbox(self) -> str:
-        """模式三：持续使用40键输入，回车发送后进入聊天页，再回车返回。"""
+        """模式三：使用两页 SSVEP ChatBox 键盘，SEND 发送正文。"""
         self._pause_enabled = False
         selection_id = 0
-        consecutive_invalid = 0
+        page = 1
+        previous_decoder = getattr(self.collector, "decoder", None)
         try:
             while True:
-                # Enter 是提交键，不是“每字符一次”的确认键；没有 Enter 时马上
-                # 开始下一轮 EEG 选择，因此可以连续输入整句话。
-                if self._chat_submit_requested():
-                    self._submit_chat_draft()
-                    continue
                 selection_id += 1
-                record = TrialRecord(selection_id, 1, None, mode="free", start=self.clock())
-                exit_requested = False
-                fatal = False
+                frequencies = (CHATBOX_PAGE1_FREQUENCIES_HZ if page == 1
+                               else CHATBOX_PAGE2_FREQUENCIES_HZ)
+                from .decoding import FbccaDecoder
+                self.collector.decoder = FbccaDecoder(self.cfg, calibration=None,
+                                                      target_frequencies_hz=frequencies)
                 try:
-                    self._run_trial(record)
-                except (AbortSession, KeyboardInterrupt) as exc:
-                    exit_requested = True
-                    record.status = "valid" if record.text_applied else "aborted"
-                    record.reason = str(exc) or "KeyboardInterrupt"
-                    self.cancel.set()
-                except Exception as exc:
-                    self._attach_failed_epoch(record, exc)
-                    record.status = "valid" if record.text_applied else "invalid"
-                    record.reason = f"{type(exc).__name__}: {exc}"
-                    fatal = (isinstance(exc, RuntimeFault) or not isinstance(exc, InvalidTrial)
-                             or self.collector.error is not None or self.markers.error is not None)
-                    self._note_fault(exc, fatal=fatal)
-                finally:
-                    self._cancel_decode()
-                    try:
-                        self.win.recordFrameIntervals = False
-                        self._draw_status()
+                    symbol, result = self._run_chatbox_selection(page, selection_id)
+                except InvalidTrial as exc:
+                    self.mode_status.text = f"ChatBox selection failed: {exc}. Retrying..."
+                    retry_started = self.clock()
+                    while self.clock() - retry_started < self.cfg.feedback_s:
+                        self._check_abort()
+                        self._draw_chatbox_keyboard(page)
                         self.win.flip()
-                    except Exception as exc:
-                        fatal = True
-                        record.reason += f"; display-close error: {exc}"
-                        self._note_fault(exc, fatal=True, default="DISPLAY")
-                        if not record.text_applied:
-                            record.status = "invalid"
-                    record.end = self.clock()
-                    self._phase(record, "COMPLETE")
-                    try:
-                        self.markers.mark(EventStamp("selection_end", record.trial_id, None,
-                            {"mode": "chatbox", "status": record.status,
-                             "prediction": (record.result or {}).get("prediction"),
-                             "text_applied": record.text_applied}))
-                    except Exception as exc:
-                        record.reason += f"; marker error: {exc}"
-                        fatal = True
-                        self._note_fault(exc, fatal=True, default="LSL_CONNECTION")
-                    self.ledger.commit(record)
-                    self._persist_trial(record)
-                    self._release_free_eeg(record)
-                if exit_requested or fatal:
-                    return record.reason or "ChatBox stopped"
-                if record.text_applied:
-                    consecutive_invalid = 0
-                elif record.status == "rejected":
-                    consecutive_invalid = 0
-                else:
-                    consecutive_invalid += 1
-                if consecutive_invalid >= self.cfg.max_consecutive_invalid:
-                    self.show_message("Several selections were not recognized. Check the EEG stream, then press ESC to exit.",
-                                      self.cfg.feedback_s)
-                    consecutive_invalid = 0
-                if self._chat_submit_requested():
-                    self._submit_chat_draft()
+                    continue
+                record = self._persist_chatbox_selection(selection_id, symbol, result)
+                try:
+                    self.markers.mark(EventStamp("selection_end", selection_id, None,
+                        {"mode": "chatbox", "page": page, "action": symbol,
+                         "status": record.status, "text_applied": record.text_applied}))
+                except Exception as exc:
+                    self._note_fault(exc, fatal=True, default="LSL_CONNECTION")
+                    return f"ChatBox marker error: {exc}"
+                if symbol == "BACK_MENU":
+                    return "RETURN_TO_MODE_MENU"
+                if symbol == "BACKSPACE":
+                    self.ledger.typed_text = self.ledger.typed_text[:-1]
+                    self._sync_output_text(force=True)
+                    continue
+                if symbol == "123":
+                    page = 2
+                    continue
+                if symbol == "ABC":
+                    page = 1
+                    continue
+                if symbol == "SEND":
+                    if self.ledger.typed_text.strip():
+                        self._submit_chat_draft()
+                    else:
+                        self.chat_status.text = "Nothing to send"
+                    page = 1
+                    continue
         finally:
             self._pause_enabled = False
             self._cancel_decode()
+            self.collector.decoder = previous_decoder
             if self._chat_future is not None:
                 self._chat_future.cancel()
 
@@ -1544,6 +1955,14 @@ class PsychoPyKeyboard:
         """先释放刺激及其循环引用，再销毁它们所属的 GL 上下文。"""
         from psychopy.visual.basevisual import MinimalStim
 
+        for page_items in getattr(self, "chat_page_visuals", {}).values():
+            for item in page_items:
+                for key in ("border", "square", "label"):
+                    value = item.get(key)
+                    if isinstance(value, MinimalStim):
+                        value.autoDraw = False
+                        item[key] = None
+
         for name, value in list(vars(self).items()):
             if isinstance(value, MinimalStim):
                 value.autoDraw = False
@@ -1575,6 +1994,8 @@ class PsychoPyKeyboard:
                     self.win = None
         finally:
             self._closed = True
+            if self.wheelchair is not None:
+                self.wheelchair.close()
             self._graphics_gc.close()
 
 

@@ -11,6 +11,7 @@ from .recording import *
 from .analysis import *
 from .ui import *
 from .decoding import FbccaDecoder
+from .llm import DEFAULT_API_KEY_FILE, configure_local_api_key
 
 
 
@@ -28,14 +29,23 @@ def static_ui_self_test(cfg: Config, *, seconds: float = 5.0) -> dict:
         app = PsychoPyKeyboard(replace(cfg), ContinuousLSL(cfg), None, TrialLedger(), static_only=True)
         app.output_box.autoDraw = True
         app.output_text.autoDraw = True
+        app.output_caption.autoDraw = cfg.session_mode == "chatbox"
         app.ledger.typed_text = "STATIC UI CHECK  ABC 123"
         app._sync_output_text(force=True)
         app.cue_title.text = "STATIC UI CHECK - no EEG / no flicker"
         app.footer.text = "40 keys + output + fixed cue | ESC: cancel | Closes automatically"
+        preview_page = int(os.environ.get("SSVEP_CHATBOX_PREVIEW_PAGE", "1"))
+        if cfg.session_mode == "chatbox":
+            preview_page = 2 if preview_page == 2 else 1
+            app.header.text = (f"MODE 3  /  {'LETTERS' if preview_page == 1 else 'NUMBERS'}  /  static preview")
+            app.footer.text = "Real window preview  ·  no EEG / no flicker  ·  ESC: cancel"
         started = time.monotonic()
         while time.monotonic() - started < seconds:
             app._check_abort()
-            app._draw_keys(1, show_outline=True)
+            if cfg.session_mode == "chatbox":
+                app._draw_chatbox_keyboard(preview_page)
+            else:
+                app._draw_keys(1, show_outline=True)
             app.win.flip()
         result.update(status="passed", exit_code=0, display_info=app.display_info)
     except AbortSession:
@@ -55,7 +65,7 @@ def static_ui_self_test(cfg: Config, *, seconds: float = 5.0) -> dict:
         print("静态界面自检通过：40键、文字、输出框、固定提示与静态绘制时序已检查。", flush=True)
     return result
 
-def main(*, cfg: Optional[Config] = None) -> dict:
+def main(*, cfg: Optional[Config] = None, wheelchair=None) -> dict:
     """唯一运行入口；不要求CLI参数；返回全部内存记录。"""
     global LAST_SESSION
     cfg = replace(cfg if cfg is not None else CONFIG)
@@ -148,9 +158,10 @@ def main(*, cfg: Optional[Config] = None) -> dict:
         with threadpool_limits(limits=1):
             # 启动预热也经过 Decoder 端口，替换解码器时不会遗漏启动路径。
             collector.decoder.decode(warm, cfg.target_fs, notch_context=warm_context)
-        print("[3/3] 创建键盘窗口；在菜单按1自由输入、2提示测试、3 ChatBox，再按SPACE开始…", flush=True)
+        print("[3/3] Creating keyboard window; look at the left, center, or right mode square for SSVEP selection…", flush=True)
         stage = "DISPLAY"
-        app = PsychoPyKeyboard(cfg, collector, markers, ledger, recorder)
+        app = PsychoPyKeyboard(cfg, collector, markers, ledger, recorder,
+                               wheelchair=wheelchair)
         reason = app.run()
         if app.fatal_fault is not None:
             errors.append(app.fatal_fault)
@@ -322,12 +333,16 @@ def cli(argv=None) -> int:
     modes.add_argument("--check-lsl-timing", action="store_true",
                        help="不显示闪烁，连接EEG并检查LSL时间轴及滤波前工频占比")
     modes.add_argument("--self-test-ui", action="store_true", help="运行静态键盘自检")
+    modes.add_argument("--configure-api-key", action="store_true",
+                       help="交互式保存 DeepSeek API key 到本地 JSON")
     modes.add_argument("--offline-session", type=Path, metavar="ZIP",
                        help="离线分析已保存的会话ZIP；不连接LSL或启动显示界面")
     parser.add_argument("--offline-output", type=Path, metavar="DIR",
                         help="离线分析输出目录，仅配合--offline-session；默认offline_results")
     parser.add_argument("--config", type=Path, metavar="TOML",
                         help="从标准 TOML 配置文件加载会话、采集、解码和显示参数")
+    parser.add_argument("--api-config", type=Path, metavar="JSON",
+                        help=f"DeepSeek API key JSON 路径；默认 {DEFAULT_API_KEY_FILE}")
     parser.add_argument("--seconds", type=positive_seconds, default=5.0,
                         help="静态自检展示或LSL预热后持续检查的秒数")
     parser.add_argument("--warmup-seconds", type=positive_seconds,
@@ -358,6 +373,13 @@ def cli(argv=None) -> int:
     parser.add_argument("--seed", type=int, help="提示目标随机种子；不同复测可使用不同非负整数")
     parser.add_argument("--participant", help="匿名受试者编号；加载个人模型时必填")
     parser.add_argument("--calibration", help="个人校准模型NPZ、完整模式2会话PKL或ZIP路径（受试者与配置须匹配）")
+    parser.add_argument("--chair-url", help="Ubuntu轮椅HTTP桥地址，例如 http://192.168.56.2:8765")
+    parser.add_argument("--chair-token", default=os.environ.get("CHAIR_API_TOKEN", ""),
+                        help="轮椅HTTP桥的X-Chair-Token；也可使用CHAIR_API_TOKEN")
+    parser.add_argument("--chair-client-id", help="轮椅HTTP客户端标识；不提供时自动生成")
+    parser.add_argument("--chair-strength", type=int, default=25, help="轮椅动作力度1..100，默认25")
+    parser.add_argument("--chair-duration", type=float, default=0.6, help="每次动作持续秒数0.1..3，默认0.6")
+    parser.add_argument("--chair-timeout", type=float, default=1.5, help="轮椅HTTP请求超时秒数，默认1.5")
     args = parser.parse_args(argv)
     if args.screen is not None and args.screen < 0:
         parser.error("screen 必须非负")
@@ -365,6 +387,17 @@ def cli(argv=None) -> int:
         parser.error("seed 必须非负")
     if args.offline_output is not None and args.offline_session is None:
         parser.error("--offline-output 必须配合 --offline-session")
+    if args.configure_api_key:
+        try:
+            path = configure_local_api_key(args.api_config)
+            print(f"DeepSeek API key 已保存到：{path}", flush=True)
+            return 0
+        except (KeyboardInterrupt, EOFError):
+            print("API key 配置已取消。", file=sys.stderr, flush=True)
+            return 130
+        except Exception as exc:
+            print(f"API key 配置失败：{exc}", file=sys.stderr, flush=True)
+            return 2
     if args.offline_session is not None:
         try:
             from .offline import run as run_offline_analysis
@@ -385,10 +418,13 @@ def cli(argv=None) -> int:
                 "lsl_timing" if args.check_lsl_timing else "diagnose" if args.diagnose else "eeg",
         "status": "failed", "errors": [], "exit_code": 0,
     }
+    wheelchair = None
     try:
         print("[启动] 正在加载运行依赖…", flush=True)
         report["checks"] = check_environment(static_ui=args.self_test_ui)
         cfg = Config.from_toml(args.config) if args.config else replace(CONFIG)
+        if args.api_config is not None:
+            cfg.deepseek_api_key_file = str(args.api_config.expanduser())
         if args.fbcca_profile:
             cfg = configure_fbcca_profile(cfg, args.fbcca_profile)
         if args.protocol:
@@ -424,6 +460,13 @@ def cli(argv=None) -> int:
         if args.warmup_seconds is not None or args.check_lsl_timing:
             cfg.startup_timeout_s = max(cfg.startup_timeout_s, cfg.startup_buffer_s + 15.0)
         cfg.validate()
+        if args.chair_url:
+            wheelchair = WheelchairBridgeClient(
+                args.chair_url, token=args.chair_token, client_id=args.chair_client_id,
+                strength=args.chair_strength, duration_s=args.chair_duration,
+                timeout_s=args.chair_timeout)
+            print(f"[轮椅] 已启用HTTP桥：{args.chair_url}；启动时保持未ARM，"
+                  "仅在有效识别类别1-4时发送动作。", flush=True)
         if args.self_test_ui:
             report.update(static_ui_self_test(cfg, seconds=args.seconds))
         elif args.diagnose:
@@ -460,7 +503,7 @@ def cli(argv=None) -> int:
                   f"估计{collector.estimated_fs:.3f}Hz；最新样本年龄{age:.3f}s。"
                   "此检查不测量设备到屏幕的物理延迟。", flush=True)
         else:
-            result = main(cfg=cfg)
+            result = main(cfg=cfg, wheelchair=wheelchair)
             report.update({key: result[key] for key in
                            ("exit_code", "errors", "trial_faults", "stop_reason", "session_artifact")})
             report["status"] = "failed" if report["exit_code"] else "finished"
@@ -472,6 +515,12 @@ def cli(argv=None) -> int:
         report["errors"].append(fault)
         report["exit_code"] = fault["exit_code"]
         print_fault(fault)
+    finally:
+        if wheelchair is not None:
+            try:
+                wheelchair.close()
+            except Exception:
+                pass
     if write_diagnostic(report) is None and not report["exit_code"]:
         report["exit_code"] = 50
     return report["exit_code"]

@@ -79,6 +79,7 @@ class Config:
     deepseek_model: str = "deepseek-chat"
     deepseek_api_url: str = "https://api.deepseek.com/chat/completions"
     deepseek_api_key_env: str = "DEEPSEEK_API_KEY"
+    deepseek_api_key_file: Optional[str] = None
     deepseek_timeout_s: float = 60.0
     deepseek_system_prompt: Optional[str] = None
     free_prepare_s: float = 1.0
@@ -247,6 +248,10 @@ class Config:
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{name} 不能为空")
+        if (self.deepseek_api_key_file is not None
+                and (not isinstance(self.deepseek_api_key_file, str)
+                     or not self.deepseek_api_key_file.strip())):
+            raise ValueError("deepseek_api_key_file 必须是非空路径或空值")
         if not self.deepseek_api_url.startswith(("http://", "https://")):
             raise ValueError("deepseek_api_url 必须是 HTTP(S) URL")
         if (not math.isfinite(self.deepseek_timeout_s)
