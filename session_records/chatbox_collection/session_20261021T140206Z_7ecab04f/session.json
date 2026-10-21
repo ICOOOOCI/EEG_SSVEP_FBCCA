@@ -1,0 +1,7605 @@
+{
+  "acquisition_metadata": {
+    "all_channels": [
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 0,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 1,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 2,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 3,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 4,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 5,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 6,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 7,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 8,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 9,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 10,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 11,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 12,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 13,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 14,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 15,
+        "unit": "UNKNOWN"
+      }
+    ],
+    "channel_count": 16,
+    "name": "obci_eeg1",
+    "nominal_fs": 250.0,
+    "publisher_filter_metadata": [
+      "UNKNOWN"
+    ],
+    "raw_xml": "<?xml version=\"1.0\"?>\n<info>\n\t<name>obci_eeg1</name>\n\t<type>EEG</type>\n\t<channel_count>16</channel_count>\n\t<nominal_srate>250</nominal_srate>\n\t<channel_format>float32</channel_format>\n\t<source_id>openbcigui</source_id>\n\t<version>1.1000000000000001</version>\n\t<created_at>438870.98622999998</created_at>\n\t<uid>b7b7ff30-6c61-4374-927d-0efd44addff8</uid>\n\t<session_id>default</session_id>\n\t<hostname>DESKTOP-LBL53L5</hostname>\n\t<v4address />\n\t<v4data_port>16572</v4data_port>\n\t<v4service_port>16572</v4service_port>\n\t<v6address />\n\t<v6data_port>16572</v6data_port>\n\t<v6service_port>16572</v6service_port>\n\t<desc />\n</info>\n",
+    "selected_channels": [
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 0,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 1,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 2,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 3,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 4,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 5,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 6,
+        "unit": "UNKNOWN"
+      },
+      {
+        "label": "UNKNOWN",
+        "lsl_index": 7,
+        "unit": "UNKNOWN"
+      }
+    ],
+    "source_id": "openbcigui",
+    "timestamp_processing": {
+      "accepted_samples_total": 208720,
+      "acquisition_buffer": "MNE-LSL StreamLSL",
+      "buffer_consistency": "manual acquire and copied snapshots share one lock",
+      "clock_domain": "mne_lsl.lsl.local_clock",
+      "device_timestamp_lag_s": 0.0,
+      "flags": [
+        "clocksync",
+        "dejitter",
+        "monotonize"
+      ],
+      "manual_time_correction_applied": false,
+      "mode": "mne_lsl_streamlsl",
+      "original_outlet_timestamps_available": false,
+      "physical_latency": "unmeasured; GUI and display delays require independent validation",
+      "sample_index_reconstruction": false,
+      "sample_integrity": "device sample counter unavailable in selected EEG stream",
+      "saved_raw_timestamp_field": "legacy name; contains LSL-postprocessed timestamps"
+    },
+    "type": "EEG"
+  },
+  "acquisition_review": {
+    "channel_count": 16,
+    "configuration_notes": [
+      "当前LSL声明16路、程序只取前8路。若使用Cyton+Daisy，GUI关闭9–16路不等于切换到8通道采集模式；请核对GUI设备模式、原始记录采样率与LSL声明。仅凭LSL元数据不能判断实际板型或采样率是否错误。"
+    ],
+    "device_timestamp_lag_applied_s": 0.0,
+    "electrode_positions_assumed": false,
+    "electrode_quality_checked_by_app": false,
+    "expected_openbci_output": "TimeSeriesRaw",
+    "input_units": [
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN"
+    ],
+    "passed": true,
+    "receiver_notch_history_s": 0.0,
+    "receiver_notch_hz": 50.0,
+    "receiver_notch_mode": "epoch",
+    "review_method": "automatic_lsl_transport",
+    "selected_channel_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "selected_channel_labels": [
+      "CH1",
+      "CH2",
+      "CH3",
+      "CH4",
+      "CH5",
+      "CH6",
+      "CH7",
+      "CH8"
+    ],
+    "source_output_verified_from_lsl": false,
+    "startup_mains_noise": {
+      "available": true,
+      "description_threshold": 0.5,
+      "frequency_resolution_hz": 0.2,
+      "input_scope": "uniform EEG before receiver notch and bandpass filtering",
+      "line_band_hz": [
+        49.0,
+        51.0
+      ],
+      "line_center_hz": 50.0,
+      "line_center_source": "receiver_notch_setting",
+      "line_dominated": true,
+      "line_fraction_per_channel": [
+        0.558455835277605,
+        0.8598610347337201,
+        0.8664362154324481,
+        0.8503158397835989,
+        0.9004312774817413,
+        0.9175007843673316,
+        0.9224559948631196,
+        0.9436740546385451
+      ],
+      "median_line_fraction": 0.8834337464570947,
+      "method": "Hann periodogram; per-channel line-band / reference-band power",
+      "nyquist_bin_excluded": true,
+      "receiver_notch_hz": 50.0,
+      "reference_band_hz": [
+        6.0,
+        90.0
+      ],
+      "rejection_threshold_validated": false,
+      "sampling_rate_hz": 250.0,
+      "used_for_rejection": false,
+      "valid_channel_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "warnings": [
+        "工频附近能量占比高：49–51 Hz / 6–90 Hz通道中位数=88.3%；仅作相对频谱提示，不用于拒识或物理幅值判断"
+      ]
+    },
+    "startup_transport": {
+      "latest_sample_age_s": 0.025181023927871138,
+      "nominal_fs_hz": 250.0,
+      "observed_fs_hz": 250.0860315575326,
+      "recent_fs_hz": 249.83098770378638,
+      "timestamp_warnings": [
+        "LSL时间戳已同步/去抖；无设备样本计数器，不能逐点确认丢样或重复样本"
+      ],
+      "uniform_samples": 1250,
+      "warning_gap_count": 0,
+      "window_s": 5.0
+    },
+    "stream_name": "obci_eeg1",
+    "stream_type": "EEG",
+    "unit_override": "AUTO",
+    "unverified": [
+      "电极质量及物理接线由OpenBCI GUI/操作者检查，本程序未自动验证",
+      "TimeSeriesRaw及GUI滤波设置来自用户配置，LSL元数据未独立核实",
+      "LSL通道单位未全部声明；不推断物理幅度"
+    ],
+    "upstream_filter_description": "OpenBCI GUI TimeSeriesRaw（用户指定；LSL元数据未必可核实）",
+    "upstream_lowpass_hz": null,
+    "wiring_user_reviewed": false
+  },
+  "clock_updates": [],
+  "config": {
+    "blank_min_s": 0.5,
+    "block_rest_s": 180.0,
+    "blocks": 3,
+    "buffer_s": 60.0,
+    "calibration_file": null,
+    "cca_regularization": 1e-10,
+    "channel_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "channel_positions": [
+      "CH1",
+      "CH2",
+      "CH3",
+      "CH4",
+      "CH5",
+      "CH6",
+      "CH7",
+      "CH8"
+    ],
+    "chatbox_feedback_s": 0.6,
+    "chatbox_llm_predictions": false,
+    "chatbox_prediction_wait_s": 1.0,
+    "chatbox_predictions_enabled": true,
+    "chatbox_reading_chars_per_s": 14.0,
+    "chatbox_reply_hold_s": 3.0,
+    "chatbox_speak_selections": true,
+    "chatbox_voice_enabled": true,
+    "chatbox_voice_rate": -1,
+    "clock_refresh_s": 1.0,
+    "clock_slew_rate_s_per_s": 0.001,
+    "connect_timeout_s": 10.0,
+    "continue_on_timestamp_anomaly": true,
+    "cue_s": 2.0,
+    "cued_offline_max_delay_s": 0.3,
+    "cued_rest_every": 40,
+    "cued_rest_s": 30.0,
+    "cued_settle_s": 0.5,
+    "data_wait_timeout_s": 8.0,
+    "deepseek_api_key_env": "DEEPSEEK_API_KEY",
+    "deepseek_api_key_file": null,
+    "deepseek_api_url": "https://api.deepseek.com/chat/completions",
+    "deepseek_model": "deepseek-chat",
+    "deepseek_system_prompt": "The user has ALS and types with a brain-computer interface, one letter at a time, in capital letters, often without punctuation and with occasional typos. Interpret short or misspelled messages generously. Reply in the user's language with short, clear, plain text (no Markdown, lists, tables or emoji) because the reply is shown on screen and read aloud. When you need more information, ask one simple question that can be answered with a word or two.",
+    "deepseek_timeout_s": 60.0,
+    "device_timestamp_lag_s": 0.0,
+    "eeg_stream_name": "obci_eeg1",
+    "eeg_stream_type": "EEG",
+    "feedback_s": 0.5,
+    "filter_bank_profile": "m3_5band",
+    "frame_long_factor": 1.5,
+    "frame_rate_tolerance": 0.005,
+    "frame_short_factor": 0.5,
+    "free_prepare_s": 1.0,
+    "full_screen": true,
+    "hard_gap_factor": 2.0,
+    "hard_rate_tolerance": 0.005,
+    "hardware_timestamp_channel": null,
+    "input_unit": "AUTO",
+    "line_regression_hz": null,
+    "marker_stream_name": "FBCCA_40_Keyboard_Events",
+    "max_clock_step_s": 0.002,
+    "max_consecutive_invalid": 3,
+    "max_gap_factor": 1.5,
+    "max_receive_age_s": 2.0,
+    "max_warning_bad_channels": 2,
+    "max_warning_frame_anomalies": 1,
+    "max_warning_gaps": 1,
+    "min_valid_channels": 6,
+    "n_harmonics": 3,
+    "notch_history_s": 4.0,
+    "notch_hz": 50.0,
+    "notch_mode": "epoch",
+    "output_box_height_px": 72.0,
+    "output_box_margin_px": 24.0,
+    "participant_id": null,
+    "photodiode_channel": null,
+    "protocol": "standard_5s",
+    "quality_jump_z": 12.0,
+    "quality_max_abs": null,
+    "quality_max_clip_fraction": 0.0,
+    "quality_rail_margin": 0.0,
+    "quality_rail_max": null,
+    "quality_rail_min": null,
+    "random_seed": 20260928,
+    "rate_tolerance": 0.002,
+    "record_root": "session_records\\chatbox_collection",
+    "rejection_calibration_id": "offline_20261019_target12_screen_around_eyes",
+    "rejection_enabled": true,
+    "rejection_max_alpha_ratio": 2.7631716193293068,
+    "rejection_min_margin": 0.0,
+    "rejection_min_score": 0.25934562367893293,
+    "response_delay_s": 0.23,
+    "sample_counter_channel": null,
+    "screen_diagonal_inches": null,
+    "screen_index": 0,
+    "session_mode": "chatbox",
+    "startup_timeout_s": 45.0,
+    "target_fs": 250.0,
+    "timestamp_jitter_grace_s": 0.5,
+    "timestamp_max_discontinuity_s": 0.25,
+    "timestamp_max_jitter_s": 0.05,
+    "timestamp_mode": "lsl",
+    "timestamp_slew_rate_s_per_s": 0.01,
+    "timing_calibration_file": null,
+    "trigger_channel": null,
+    "upstream_filter_description": "OpenBCI GUI TimeSeriesRaw（用户指定；LSL元数据未必可核实）",
+    "upstream_lowpass_hz": null,
+    "viewing_distance_cm": 70.0,
+    "warmup_s": 10.0,
+    "weight_a": 1.25,
+    "weight_b": 0.25,
+    "window_size": [
+      1280,
+      800
+    ]
+  },
+  "continuous_recording": {
+    "complete_for_submitted_samples": true,
+    "error": null,
+    "queued_samples": 208720,
+    "received_chunks": 20831,
+    "saved_blocks": 836,
+    "saved_samples": 208720,
+    "scope": "Samples delivered to the MNE-LSL callback; upstream loss unverified",
+    "source_dtype": "float32",
+    "submitted_samples": 208720
+  },
+  "decoder_settings": {
+    "filter_bands_hz": [
+      [
+        6.0,
+        90.0
+      ],
+      [
+        14.0,
+        90.0
+      ],
+      [
+        22.0,
+        90.0
+      ],
+      [
+        30.0,
+        90.0
+      ],
+      [
+        38.0,
+        90.0
+      ]
+    ],
+    "filter_bank_profile": "m3_5band",
+    "line_regression_hz": null,
+    "n_harmonics": 3,
+    "notch_Q": 30.0,
+    "notch_history_s": 4.0,
+    "notch_hz": 50.0,
+    "notch_mode": "epoch",
+    "notch_pipeline": "uniform raw epoch -> optional line regression -> row normalization -> epoch notch filtfilt -> epoch filter bank"
+  },
+  "display_info": {
+    "chatbox_keyboard": {
+      "backspace_action": "delete_last_character",
+      "layout": "chat_top_ime_keyboard_bottom",
+      "page2_arrow_action": "return_to_mode_menu",
+      "page_switch_actions": {
+        "123": "numbers",
+        "ABC": "letters"
+      },
+      "pages": {
+        "1": {
+          "frames": 315,
+          "frequencies_hz": [
+            8.8,
+            15.4,
+            13.4,
+            10.8,
+            13.0,
+            10.4,
+            12.6,
+            10.0,
+            12.0,
+            14.2,
+            12.4,
+            9.8,
+            8.2,
+            15.8,
+            8.4,
+            15.6,
+            8.0,
+            15.2,
+            8.6,
+            14.8,
+            11.6,
+            14.0,
+            11.8,
+            13.8,
+            11.0,
+            13.2,
+            10.6,
+            9.2,
+            14.6,
+            11.2,
+            12.2,
+            15.0,
+            9.0
+          ],
+          "layout": "custom",
+          "scheduled_s": 5.249595749977743,
+          "symbols": [
+            "Q",
+            "W",
+            "E",
+            "R",
+            "T",
+            "Y",
+            "U",
+            "I",
+            "O",
+            "P",
+            "A",
+            "S",
+            "D",
+            "F",
+            "G",
+            "H",
+            "J",
+            "K",
+            "L",
+            "Z",
+            "X",
+            "C",
+            "V",
+            "B",
+            "N",
+            "M",
+            "123",
+            "SPACE",
+            "SEND",
+            "BACKSPACE",
+            "SUGGEST1",
+            "SUGGEST2",
+            "SUGGEST3"
+          ]
+        },
+        "2": {
+          "frames": 315,
+          "frequencies_hz": [
+            8.6,
+            13.6,
+            11.0,
+            15.6,
+            13.0,
+            9.0,
+            15.4,
+            8.0,
+            13.2,
+            9.4,
+            8.2,
+            11.6,
+            15.8,
+            15.2,
+            10.4,
+            14.6,
+            10.6,
+            10.2
+          ],
+          "layout": "custom",
+          "scheduled_s": 5.249595749977743,
+          "symbols": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "0",
+            ",",
+            ".",
+            "BACK_MENU",
+            "BACKSPACE",
+            "ABC",
+            "SPACE",
+            "SEND",
+            "REPLAY"
+          ]
+        }
+      },
+      "send_action": "submit_chat_draft"
+    },
+    "client_size_reported": [
+      2560,
+      1440
+    ],
+    "column_gap_pix_units": 38.5476923076923,
+    "content_scale_factor": 1.0,
+    "coordinate_space": "psychopy_pix_client",
+    "cued_guidance": {
+      "arrow_width_pix_units": 41.631507692307686,
+      "cue_s": 2.0,
+      "dim_others_during_preparation": true,
+      "settle_s": 0.5,
+      "static_outline_during_stimulus": true,
+      "timing": "automatic_within_block"
+    },
+    "declared_screen_diagonal_inches": null,
+    "display_size_pix_units": [
+      2560.0,
+      1440.0
+    ],
+    "framebuffer_size_reported": [
+      2560,
+      1440
+    ],
+    "full_screen": true,
+    "gap_pix_units": 38.5476923076923,
+    "key_positions_pix_units": [
+      [
+        -982.9661538461537,
+        327.6553846153846
+      ],
+      [
+        -764.5292307692307,
+        327.6553846153846
+      ],
+      [
+        -546.0923076923076,
+        327.6553846153846
+      ],
+      [
+        -327.6553846153846,
+        327.6553846153846
+      ],
+      [
+        -109.21846153846153,
+        327.6553846153846
+      ],
+      [
+        109.21846153846153,
+        327.6553846153846
+      ],
+      [
+        327.6553846153846,
+        327.6553846153846
+      ],
+      [
+        546.0923076923076,
+        327.6553846153846
+      ],
+      [
+        764.5292307692307,
+        327.6553846153846
+      ],
+      [
+        982.9661538461537,
+        327.6553846153846
+      ],
+      [
+        -982.9661538461537,
+        109.21846153846153
+      ],
+      [
+        -764.5292307692307,
+        109.21846153846153
+      ],
+      [
+        -546.0923076923076,
+        109.21846153846153
+      ],
+      [
+        -327.6553846153846,
+        109.21846153846153
+      ],
+      [
+        -109.21846153846153,
+        109.21846153846153
+      ],
+      [
+        109.21846153846153,
+        109.21846153846153
+      ],
+      [
+        327.6553846153846,
+        109.21846153846153
+      ],
+      [
+        546.0923076923076,
+        109.21846153846153
+      ],
+      [
+        764.5292307692307,
+        109.21846153846153
+      ],
+      [
+        982.9661538461537,
+        109.21846153846153
+      ],
+      [
+        -982.9661538461537,
+        -109.21846153846153
+      ],
+      [
+        -764.5292307692307,
+        -109.21846153846153
+      ],
+      [
+        -546.0923076923076,
+        -109.21846153846153
+      ],
+      [
+        -327.6553846153846,
+        -109.21846153846153
+      ],
+      [
+        -109.21846153846153,
+        -109.21846153846153
+      ],
+      [
+        109.21846153846153,
+        -109.21846153846153
+      ],
+      [
+        327.6553846153846,
+        -109.21846153846153
+      ],
+      [
+        546.0923076923076,
+        -109.21846153846153
+      ],
+      [
+        764.5292307692307,
+        -109.21846153846153
+      ],
+      [
+        982.9661538461537,
+        -109.21846153846153
+      ],
+      [
+        -982.9661538461537,
+        -327.6553846153846
+      ],
+      [
+        -764.5292307692307,
+        -327.6553846153846
+      ],
+      [
+        -546.0923076923076,
+        -327.6553846153846
+      ],
+      [
+        -327.6553846153846,
+        -327.6553846153846
+      ],
+      [
+        -109.21846153846153,
+        -327.6553846153846
+      ],
+      [
+        109.21846153846153,
+        -327.6553846153846
+      ],
+      [
+        327.6553846153846,
+        -327.6553846153846
+      ],
+      [
+        546.0923076923076,
+        -327.6553846153846
+      ],
+      [
+        764.5292307692307,
+        -327.6553846153846
+      ],
+      [
+        982.9661538461537,
+        -327.6553846153846
+      ]
+    ],
+    "key_size_pix_units": 179.88923076923075,
+    "layout_cols": 10,
+    "layout_rows": 4,
+    "layout_scale_from_140px_reference": 1.2849230769230768,
+    "layout_schema_version": 3,
+    "layout_strategy": "centered_proportional_fit",
+    "luminance_gamma_calibrated": false,
+    "mode_selection": {
+      "control": "ssvep",
+      "frames": 315,
+      "frequencies_hz": [
+        8.0,
+        10.0,
+        12.0
+      ],
+      "labels": [
+        "MODE 1",
+        "MODE 2",
+        "MODE 3"
+      ],
+      "layout": "left_to_right",
+      "scheduled_s": 5.249595749977743
+    },
+    "physical_estimate": null,
+    "physical_timing_measured": false,
+    "refresh_hz_measured": 60.004620356021796,
+    "requested_layout": {
+      "cols": 10,
+      "gap_to_key_ratio": 0.21428571428571427,
+      "max_grid_height_fraction": 0.58,
+      "max_grid_width_fraction": 0.96,
+      "rows": 4
+    },
+    "row_gap_pix_units": 38.5476923076923,
+    "scheduled_stimulus_s": 5.332922666644056,
+    "screen_index": 0,
+    "static_render_check": {
+      "anomaly_count": 0,
+      "estimated_missed_frames": 0,
+      "flip_rate_error_percent": -0.008039975676732425,
+      "flip_rate_mismatch": false,
+      "flip_rate_tolerance_percent": 0.5,
+      "hard_invalid": false,
+      "intervals_s": [
+        0.016714600031264126,
+        0.016657000000122935,
+        0.016735700017306954,
+        0.01666939997812733,
+        0.016702699998859316,
+        0.016632199985906482,
+        0.016673700010869652,
+        0.01663809997262433,
+        0.016704400011803955,
+        0.016616000037174672,
+        0.016665400005877018,
+        0.016718999948352575,
+        0.016641900001559407,
+        0.016681100009009242,
+        0.01665780000621453,
+        0.016667200019583106,
+        0.016645399970002472,
+        0.01672300003701821,
+        0.01662369997939095,
+        0.016668899974320084,
+        0.01667530002305284,
+        0.01667109999107197,
+        0.01662970002507791,
+        0.016703100001905113,
+        0.01664859999436885,
+        0.01665010000579059,
+        0.0166975999600254,
+        0.01665920001687482,
+        0.0166369000216946,
+        0.01666819996898994,
+        0.01668130001053214,
+        0.016680800006724894,
+        0.016707499977201223,
+        0.016569600033108145,
+        0.01669149997178465,
+        0.016653700033202767,
+        0.016702900000382215,
+        0.01665609999326989,
+        0.016652799968142062,
+        0.016845300036948174,
+        0.016517999989446253,
+        0.01663399999961257,
+        0.016680500004440546,
+        0.01669020002009347,
+        0.016648199991323054,
+        0.01668890001019463,
+        0.016656899999361485,
+        0.016588699945714325,
+        0.0167244000476785,
+        0.016771299997344613,
+        0.016553099965676665,
+        0.016667500021867454,
+        0.016658000007737428,
+        0.016652799968142062,
+        0.016649299999698997,
+        0.01673480001045391,
+        0.01667530002305284,
+        0.016619500005617738,
+        0.016683799971360713,
+        0.01668880000943318,
+        0.016648199991323054,
+        0.016608100035227835,
+        0.016662999987602234,
+        0.016698499966878444,
+        0.01668580004479736,
+        0.016654999984893948,
+        0.016675699967890978,
+        0.01668460003565997,
+        0.016651200014166534,
+        0.016613999963738024,
+        0.016755899996496737,
+        0.016687700001057237,
+        0.01661639998201281,
+        0.016653600032441318,
+        0.016700899985153228,
+        0.01662650000071153,
+        0.016622800030745566,
+        0.01667709997855127,
+        0.016701399988960475,
+        0.016666900017298758,
+        0.016704300011042506,
+        0.01663809997262433,
+        0.016728300019167364,
+        0.016649500001221895,
+        0.01663679996272549,
+        0.01666640001349151,
+        0.016668800031766295,
+        0.016674799961037934,
+        0.016700200038030744,
+        0.016607799974735826,
+        0.01669329998549074,
+        0.016646800038870424,
+        0.01660739997169003,
+        0.01664440002059564,
+        0.016671799996402115,
+        0.016747299989219755,
+        0.01664460002211854,
+        0.01668729999801144,
+        0.01669459999538958,
+        0.016665500006638467,
+        0.016674799961037934,
+        0.016557900002226233,
+        0.01673480001045391,
+        0.016658800013829023,
+        0.016691199969500303,
+        0.01662650000071153,
+        0.016700100037269294,
+        0.016692099976353347,
+        0.01661769999191165,
+        0.01671840000199154,
+        0.016623300034552813,
+        0.016674499958753586,
+        0.016670200042426586,
+        0.016653499973472208,
+        0.016655399987939745,
+        0.01669469999615103,
+        0.016666100011207163,
+        0.016676700033713132,
+        0.016652599966619164,
+        0.016593700041994452
+      ],
+      "long_intervals": 0,
+      "max_interval_ms": 16.845300036948174,
+      "median_interval_ms": 16.66735002072528,
+      "min_interval_ms": 16.517999989446253,
+      "nonmonotonic_interval_count": 0,
+      "observed_flip_rate_hz": 59.999795999140254,
+      "refresh_hz": 60.004620356021796,
+      "severe_interval_count": 0,
+      "severe_interval_threshold_ms": 33.330766666525356,
+      "short_intervals": 0,
+      "strict_valid": true,
+      "valid": true,
+      "warning": false
+    },
+    "stimulus_by_mode": {
+      "cued": {
+        "frames": 320,
+        "scheduled_s": 5.332922666644056
+      },
+      "free": {
+        "frames": 315,
+        "scheduled_s": 5.249595749977743
+      }
+    },
+    "stimulus_frames": 320,
+    "target_viewing_distance_cm": 70.0,
+    "ui_scale_from_reference": 1.5,
+    "window_backend": "pyglet",
+    "window_size_reported": [
+      2560,
+      1440
+    ]
+  },
+  "events": [
+    {
+      "details": {
+        "mode_at_start": "chatbox"
+      },
+      "kind": "session_start",
+      "target_id": null,
+      "timestamp": 438896.3698618,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block_orders": [
+          [
+            12,
+            8,
+            7,
+            5,
+            11,
+            16,
+            15,
+            13,
+            0,
+            6,
+            1,
+            9,
+            2,
+            3,
+            10,
+            14,
+            4,
+            17
+          ],
+          [
+            11,
+            17,
+            5,
+            14,
+            8,
+            6,
+            13,
+            4,
+            10,
+            7,
+            16,
+            2,
+            3,
+            1,
+            9,
+            12,
+            15,
+            0
+          ],
+          [
+            13,
+            8,
+            3,
+            1,
+            10,
+            12,
+            14,
+            6,
+            16,
+            15,
+            11,
+            5,
+            9,
+            2,
+            0,
+            7,
+            4,
+            17
+          ],
+          [
+            5,
+            2,
+            15,
+            4,
+            0,
+            8,
+            6,
+            12,
+            1,
+            14,
+            10,
+            11,
+            13,
+            16,
+            9,
+            7,
+            17,
+            3
+          ],
+          [
+            6,
+            16,
+            14,
+            8,
+            10,
+            12,
+            2,
+            13,
+            15,
+            9,
+            17,
+            5,
+            4,
+            3,
+            7,
+            1,
+            11,
+            0
+          ]
+        ],
+        "blocks": 5,
+        "cue_s": 1.0,
+        "frequencies_hz": [
+          8.6,
+          13.6,
+          11.0,
+          15.6,
+          13.0,
+          9.0,
+          15.4,
+          8.0,
+          13.2,
+          9.4,
+          8.2,
+          11.6,
+          15.8,
+          15.2,
+          10.4,
+          14.6,
+          10.6,
+          10.2
+        ],
+        "iti_s": 1.0,
+        "labels": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "0",
+          ",",
+          ".",
+          "MENU",
+          "DEL",
+          "ABC",
+          "SPACE",
+          "SEND",
+          "REPLAY"
+        ],
+        "luminance": "0.5*(1+sin(2*pi*f*t)), frame-sampled at measured refresh",
+        "max_long_frames": 2,
+        "page": 2,
+        "paradigm": "chatbox-collection-1",
+        "phase_rad": 0.0,
+        "planned_trials": 90,
+        "refresh_hz": 60.004620356021796,
+        "rest_s": 30.0,
+        "seed": 1471217998,
+        "stimulus_frames": 331,
+        "stimulus_s": 5.516241883309946,
+        "suggestion_labels": [],
+        "symbols": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "0",
+          ",",
+          ".",
+          "BACK_MENU",
+          "BACKSPACE",
+          "ABC",
+          "SPACE",
+          "SEND",
+          "REPLAY"
+        ]
+      },
+      "kind": "collection_start",
+      "target_id": null,
+      "timestamp": 438901.1751228,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 1
+      },
+      "kind": "block_start",
+      "target_id": null,
+      "timestamp": 438911.2213297,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 1
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438911.2377992,
+      "trial_id": 1
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438912.2555009,
+      "trial_id": 1
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438917.7711447,
+      "trial_id": 1
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 13,
+        "flicker_s": 5.515643800026737,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "long_frames": 0,
+        "max_interval_ms": 17.961999983526766,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 1,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438917.7713292,
+      "trial_id": 1
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438918.7876981,
+      "trial_id": 2
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438919.8044292,
+      "trial_id": 2
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438925.3209686,
+      "trial_id": 2
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 9,
+        "flicker_s": 5.516539399977773,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "long_frames": 0,
+        "max_interval_ms": 17.63700001174584,
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438925.3211244,
+      "trial_id": 2
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 3
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438926.3542975,
+      "trial_id": 3
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438927.370892,
+      "trial_id": 3
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438932.8874307,
+      "trial_id": 3
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 8,
+        "flicker_s": 5.516538700030651,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "long_frames": 0,
+        "max_interval_ms": 17.77330000186339,
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 3,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438932.887587,
+      "trial_id": 3
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 4
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438933.9206647,
+      "trial_id": 4
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438934.9382255,
+      "trial_id": 4
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438940.4538117,
+      "trial_id": 4
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 6,
+        "flicker_s": 5.515586199995596,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "long_frames": 0,
+        "max_interval_ms": 17.671799985691905,
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 4,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438940.4539756,
+      "trial_id": 4
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 5
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438941.4871499,
+      "trial_id": 5
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438942.5038092,
+      "trial_id": 5
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438948.0203239,
+      "trial_id": 5
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 12,
+        "flicker_s": 5.516514699964318,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "long_frames": 0,
+        "max_interval_ms": 17.84610003232956,
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 5,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438948.0204805,
+      "trial_id": 5
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 6
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438949.0537333,
+      "trial_id": 6
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438950.0702733,
+      "trial_id": 6
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438955.5868765,
+      "trial_id": 6
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 17,
+        "flicker_s": 5.516603199997917,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "long_frames": 0,
+        "max_interval_ms": 17.65499997418374,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 6,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438955.5870226,
+      "trial_id": 6
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 7
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438956.6201857,
+      "trial_id": 7
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438957.6377906,
+      "trial_id": 7
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438963.1533551,
+      "trial_id": 7
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 16,
+        "flicker_s": 5.515564500004984,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "long_frames": 0,
+        "max_interval_ms": 17.846800037659705,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 7,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438963.1535165,
+      "trial_id": 7
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438964.170887,
+      "trial_id": 8
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438965.1865859,
+      "trial_id": 8
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438970.7031532,
+      "trial_id": 8
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 14,
+        "flicker_s": 5.516567299957387,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "long_frames": 0,
+        "max_interval_ms": 17.929699970409274,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438970.7032931,
+      "trial_id": 8
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 9
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438971.7365141,
+      "trial_id": 9
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438972.7531226,
+      "trial_id": 9
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438978.2696635,
+      "trial_id": 9
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 1,
+        "flicker_s": 5.516540899989195,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "long_frames": 0,
+        "max_interval_ms": 17.69640005659312,
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 9,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438978.2698007,
+      "trial_id": 9
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 10
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438979.2871981,
+      "trial_id": 10
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438980.3029557,
+      "trial_id": 10
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438985.8195293,
+      "trial_id": 10
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 7,
+        "flicker_s": 5.516573599947151,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "long_frames": 0,
+        "max_interval_ms": 17.682700010482222,
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 10,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438985.8196915,
+      "trial_id": 10
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 11
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438986.8528295,
+      "trial_id": 11
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438987.8694174,
+      "trial_id": 11
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 438993.385959,
+      "trial_id": 11
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 2,
+        "flicker_s": 5.516541599994525,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "long_frames": 0,
+        "max_interval_ms": 17.714999965392053,
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 11,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 438993.3861244,
+      "trial_id": 11
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 12
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 438994.4193013,
+      "trial_id": 12
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 438995.4359266,
+      "trial_id": 12
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439000.9534595,
+      "trial_id": 12
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 10,
+        "flicker_s": 5.517532899975777,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "long_frames": 0,
+        "max_interval_ms": 17.97039998928085,
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 12,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439000.9536088,
+      "trial_id": 12
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 13
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439001.9857179,
+      "trial_id": 13
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439003.0023885,
+      "trial_id": 13
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439008.5189,
+      "trial_id": 13
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 3,
+        "flicker_s": 5.51651149999816,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "long_frames": 0,
+        "max_interval_ms": 18.20569997653365,
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 13,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439008.5190593,
+      "trial_id": 13
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439009.5522651,
+      "trial_id": 14
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439010.5698228,
+      "trial_id": 14
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439016.0854436,
+      "trial_id": 14
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 4,
+        "flicker_s": 5.515620800026227,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "long_frames": 0,
+        "max_interval_ms": 17.593000025954098,
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439016.0856317,
+      "trial_id": 14
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 15
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439017.1029979,
+      "trial_id": 15
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439018.1187496,
+      "trial_id": 15
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439023.6352787,
+      "trial_id": 15
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 11,
+        "flicker_s": 5.516529099957552,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "long_frames": 0,
+        "max_interval_ms": 17.69760000752285,
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 15,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439023.6354443,
+      "trial_id": 15
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 16
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439024.6686064,
+      "trial_id": 16
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439025.6851735,
+      "trial_id": 16
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439031.2017502,
+      "trial_id": 16
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 15,
+        "flicker_s": 5.516576700028963,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "long_frames": 0,
+        "max_interval_ms": 17.713100009132177,
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 16,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439031.2019318,
+      "trial_id": 16
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439032.235161,
+      "trial_id": 17
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439033.2516867,
+      "trial_id": 17
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439038.7682212,
+      "trial_id": 17
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 5,
+        "flicker_s": 5.51653449999867,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "long_frames": 0,
+        "max_interval_ms": 17.948799999430776,
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439038.7683765,
+      "trial_id": 17
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439039.7849055,
+      "trial_id": 18
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439040.801539,
+      "trial_id": 18
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439046.3189934,
+      "trial_id": 18
+    },
+    {
+      "details": {
+        "block": 1,
+        "class_index": 18,
+        "flicker_s": 5.517454400018323,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "long_frames": 0,
+        "max_interval_ms": 18.279600015375763,
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439046.3191542,
+      "trial_id": 18
+    },
+    {
+      "details": {
+        "block": 1,
+        "completed": 18,
+        "repeated": 0,
+        "valid": 18
+      },
+      "kind": "block_end",
+      "target_id": null,
+      "timestamp": 439047.3347477,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "title": "Block 1 of 5 done."
+      },
+      "kind": "rest_start",
+      "target_id": null,
+      "timestamp": 439047.3347621,
+      "trial_id": 0
+    },
+    {
+      "details": {},
+      "kind": "rest_end",
+      "target_id": null,
+      "timestamp": 439077.3516267,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 2
+      },
+      "kind": "block_start",
+      "target_id": null,
+      "timestamp": 439078.8673564,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 1
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439078.8838509,
+      "trial_id": 19
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439079.9005876,
+      "trial_id": 19
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439085.4171044,
+      "trial_id": 19
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 12,
+        "flicker_s": 5.516516799980309,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "long_frames": 0,
+        "max_interval_ms": 17.70659995963797,
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 1,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439085.4172496,
+      "trial_id": 19
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 2
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439086.4502729,
+      "trial_id": 20
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439087.4679689,
+      "trial_id": 20
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439092.9838893,
+      "trial_id": 20
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 18,
+        "flicker_s": 5.51592040003743,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "long_frames": 0,
+        "max_interval_ms": 17.62230001622811,
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 2,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439092.9840532,
+      "trial_id": 20
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 3
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439094.0168933,
+      "trial_id": 21
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439095.033533,
+      "trial_id": 21
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439100.5500427,
+      "trial_id": 21
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 6,
+        "flicker_s": 5.516509700042661,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "long_frames": 0,
+        "max_interval_ms": 17.906899971421808,
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 3,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439100.5501791,
+      "trial_id": 21
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 4
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439101.5834194,
+      "trial_id": 22
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439102.6000684,
+      "trial_id": 22
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439108.1174758,
+      "trial_id": 22
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 15,
+        "flicker_s": 5.517407400009688,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "long_frames": 0,
+        "max_interval_ms": 17.710599990095943,
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 4,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439108.1176675,
+      "trial_id": 22
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 5
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439109.1497436,
+      "trial_id": 23
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439110.1666499,
+      "trial_id": 23
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439115.6829855,
+      "trial_id": 23
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 9,
+        "flicker_s": 5.5163355999975465,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "long_frames": 0,
+        "max_interval_ms": 18.314799992367625,
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 5,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439115.6831622,
+      "trial_id": 23
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 6
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439116.7162959,
+      "trial_id": 24
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439117.7329873,
+      "trial_id": 24
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439123.2495211,
+      "trial_id": 24
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 7,
+        "flicker_s": 5.51653379999334,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "long_frames": 0,
+        "max_interval_ms": 17.71099999314174,
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 6,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439123.2496385,
+      "trial_id": 24
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 7
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439124.2828344,
+      "trial_id": 25
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439125.3004787,
+      "trial_id": 25
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439130.8159244,
+      "trial_id": 25
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 14,
+        "flicker_s": 5.5154456999734975,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "long_frames": 0,
+        "max_interval_ms": 17.656899988651276,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 7,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439130.8161048,
+      "trial_id": 25
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 8
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439131.8492695,
+      "trial_id": 26
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439132.8659726,
+      "trial_id": 26
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439138.3824121,
+      "trial_id": 26
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 5,
+        "flicker_s": 5.516439499973785,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "long_frames": 0,
+        "max_interval_ms": 17.707600025460124,
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 8,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439138.3825847,
+      "trial_id": 26
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 9
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439139.4000968,
+      "trial_id": 27
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439140.4158064,
+      "trial_id": 27
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439145.9323663,
+      "trial_id": 27
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 11,
+        "flicker_s": 5.516559900017455,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "long_frames": 0,
+        "max_interval_ms": 17.636500007938594,
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 9,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439145.9325131,
+      "trial_id": 27
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 10
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439146.9656102,
+      "trial_id": 28
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439147.9822716,
+      "trial_id": 28
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439153.4987021,
+      "trial_id": 28
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 8,
+        "flicker_s": 5.51643050002167,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "long_frames": 0,
+        "max_interval_ms": 18.45169998705387,
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 10,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439153.4988401,
+      "trial_id": 28
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 11
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439154.5320519,
+      "trial_id": 29
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439155.548767,
+      "trial_id": 29
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439161.0653059,
+      "trial_id": 29
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 17,
+        "flicker_s": 5.516538900032174,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "long_frames": 0,
+        "max_interval_ms": 17.63830002164468,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 11,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439161.0654814,
+      "trial_id": 29
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 12
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439162.0986271,
+      "trial_id": 30
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439163.115284,
+      "trial_id": 30
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439168.6317923,
+      "trial_id": 30
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 3,
+        "flicker_s": 5.516508299973793,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "long_frames": 0,
+        "max_interval_ms": 17.699000018183142,
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 12,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439168.6319606,
+      "trial_id": 30
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 13
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439169.6650865,
+      "trial_id": 31
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439170.6817708,
+      "trial_id": 31
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439176.1981671,
+      "trial_id": 31
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 4,
+        "flicker_s": 5.516396300052293,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "long_frames": 0,
+        "max_interval_ms": 17.704300000332296,
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 13,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439176.1983195,
+      "trial_id": 31
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 14
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439177.2148997,
+      "trial_id": 32
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439178.2315353,
+      "trial_id": 32
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439183.7481697,
+      "trial_id": 32
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 2,
+        "flicker_s": 5.516634400002658,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "long_frames": 0,
+        "max_interval_ms": 17.702499986626208,
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 14,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439183.7483049,
+      "trial_id": 32
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439184.7814123,
+      "trial_id": 33
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439185.7989908,
+      "trial_id": 33
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439191.3145478,
+      "trial_id": 33
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 10,
+        "flicker_s": 5.515557000006083,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "long_frames": 0,
+        "max_interval_ms": 17.630399961490184,
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439191.3147022,
+      "trial_id": 33
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 16
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439192.3322283,
+      "trial_id": 34
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439193.3478383,
+      "trial_id": 34
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439198.8644216,
+      "trial_id": 34
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 13,
+        "flicker_s": 5.516583300021011,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "long_frames": 0,
+        "max_interval_ms": 17.675300012342632,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 16,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439198.8645747,
+      "trial_id": 34
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 17
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439199.8976242,
+      "trial_id": 35
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439200.9156153,
+      "trial_id": 35
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439206.4308623,
+      "trial_id": 35
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 16,
+        "flicker_s": 5.515246999973897,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "long_frames": 0,
+        "max_interval_ms": 17.713599954731762,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 17,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439206.4310239,
+      "trial_id": 35
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439207.464099,
+      "trial_id": 36
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439208.4808511,
+      "trial_id": 36
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439213.9973575,
+      "trial_id": 36
+    },
+    {
+      "details": {
+        "block": 2,
+        "class_index": 1,
+        "flicker_s": 5.5165064000175335,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "long_frames": 0,
+        "max_interval_ms": 17.699900025036186,
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439213.9975105,
+      "trial_id": 36
+    },
+    {
+      "details": {
+        "block": 2,
+        "completed": 36,
+        "repeated": 0,
+        "valid": 36
+      },
+      "kind": "block_end",
+      "target_id": null,
+      "timestamp": 439214.9983618,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "title": "Block 2 of 5 done."
+      },
+      "kind": "rest_start",
+      "target_id": null,
+      "timestamp": 439214.9983728,
+      "trial_id": 0
+    },
+    {
+      "details": {},
+      "kind": "rest_end",
+      "target_id": null,
+      "timestamp": 439245.0131801,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 3
+      },
+      "kind": "block_start",
+      "target_id": null,
+      "timestamp": 439246.5299562,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 1
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439246.546604,
+      "trial_id": 37
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439247.5632614,
+      "trial_id": 37
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439253.0797511,
+      "trial_id": 37
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 14,
+        "flicker_s": 5.516489700006787,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "long_frames": 0,
+        "max_interval_ms": 17.72299996810034,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 1,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439253.0799065,
+      "trial_id": 37
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439254.1131654,
+      "trial_id": 38
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439255.129673,
+      "trial_id": 38
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439260.6462587,
+      "trial_id": 38
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 9,
+        "flicker_s": 5.5165856999810785,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "long_frames": 0,
+        "max_interval_ms": 17.590700008440763,
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 2,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439260.6463945,
+      "trial_id": 38
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 3
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439261.6794992,
+      "trial_id": 39
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439262.6962034,
+      "trial_id": 39
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439268.2126796,
+      "trial_id": 39
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 4,
+        "flicker_s": 5.516476200020406,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "long_frames": 0,
+        "max_interval_ms": 17.602399981115013,
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 3,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439268.212863,
+      "trial_id": 39
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 4
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439269.2460079,
+      "trial_id": 40
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439270.2636327,
+      "trial_id": 40
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439275.7792154,
+      "trial_id": 40
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 2,
+        "flicker_s": 5.515582699968945,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "long_frames": 0,
+        "max_interval_ms": 17.78059999924153,
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 4,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439275.7793731,
+      "trial_id": 40
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439276.8125241,
+      "trial_id": 41
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439277.8291847,
+      "trial_id": 41
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439283.3457292,
+      "trial_id": 41
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 11,
+        "flicker_s": 5.516544500016607,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "long_frames": 0,
+        "max_interval_ms": 18.304399971384555,
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439283.345912,
+      "trial_id": 41
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439284.3789753,
+      "trial_id": 42
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439285.3956371,
+      "trial_id": 42
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439290.9122586,
+      "trial_id": 42
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 13,
+        "flicker_s": 5.516621500020847,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "long_frames": 0,
+        "max_interval_ms": 18.300199997611344,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439290.9123942,
+      "trial_id": 42
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 7
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439291.9454473,
+      "trial_id": 43
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439292.962176,
+      "trial_id": 43
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439298.4786754,
+      "trial_id": 43
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 15,
+        "flicker_s": 5.51649940002244,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "long_frames": 0,
+        "max_interval_ms": 17.729399958625436,
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 7,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439298.4788434,
+      "trial_id": 43
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 8
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439299.4962018,
+      "trial_id": 44
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439300.5119848,
+      "trial_id": 44
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439306.0284854,
+      "trial_id": 44
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 7,
+        "flicker_s": 5.516500600031577,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "long_frames": 0,
+        "max_interval_ms": 17.741799994837493,
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 8,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439306.028667,
+      "trial_id": 44
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 9
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439307.0619271,
+      "trial_id": 45
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439308.0794138,
+      "trial_id": 45
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439313.5949555,
+      "trial_id": 45
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 17,
+        "flicker_s": 5.515541700005997,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "long_frames": 0,
+        "max_interval_ms": 17.645500018261373,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 9,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439313.5950988,
+      "trial_id": 45
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 10
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439314.6282583,
+      "trial_id": 46
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439315.6449226,
+      "trial_id": 46
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439321.1615234,
+      "trial_id": 46
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 16,
+        "flicker_s": 5.516600799979642,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "long_frames": 0,
+        "max_interval_ms": 18.393200007267296,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 10,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439321.1616961,
+      "trial_id": 46
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 11
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439322.1947932,
+      "trial_id": 47
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439323.2113634,
+      "trial_id": 47
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439328.7278821,
+      "trial_id": 47
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 12,
+        "flicker_s": 5.516518699994776,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "long_frames": 0,
+        "max_interval_ms": 17.72020000498742,
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 11,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439328.7280484,
+      "trial_id": 47
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439329.7454834,
+      "trial_id": 48
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439330.7611564,
+      "trial_id": 48
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439336.2777704,
+      "trial_id": 48
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 6,
+        "flicker_s": 5.516613999963738,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "long_frames": 0,
+        "max_interval_ms": 17.67999998992309,
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439336.2779528,
+      "trial_id": 48
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 13
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439337.3110456,
+      "trial_id": 49
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439338.3287134,
+      "trial_id": 49
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439343.8442279,
+      "trial_id": 49
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 10,
+        "flicker_s": 5.515514499973506,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "long_frames": 0,
+        "max_interval_ms": 17.642399994656444,
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 13,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439343.8444101,
+      "trial_id": 49
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 14
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439344.8775731,
+      "trial_id": 50
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439345.8942488,
+      "trial_id": 50
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439351.4116672,
+      "trial_id": 50
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 3,
+        "flicker_s": 5.517418399977032,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "long_frames": 0,
+        "max_interval_ms": 17.686299979686737,
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 14,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439351.4118233,
+      "trial_id": 50
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 15
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439352.4440635,
+      "trial_id": 51
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439353.4607336,
+      "trial_id": 51
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439358.9771576,
+      "trial_id": 51
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 1,
+        "flicker_s": 5.516423999972176,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "long_frames": 0,
+        "max_interval_ms": 18.171100004110485,
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 15,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439358.977289,
+      "trial_id": 51
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439360.0105001,
+      "trial_id": 52
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439361.0272752,
+      "trial_id": 52
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439366.5437593,
+      "trial_id": 52
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 8,
+        "flicker_s": 5.516484100022353,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "long_frames": 0,
+        "max_interval_ms": 17.63850002316758,
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439366.5439064,
+      "trial_id": 52
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439367.5769372,
+      "trial_id": 53
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439368.5936554,
+      "trial_id": 53
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439374.1101235,
+      "trial_id": 53
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 5,
+        "flicker_s": 5.516468100016937,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "long_frames": 0,
+        "max_interval_ms": 17.704700003378093,
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 17,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439374.1102787,
+      "trial_id": 53
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439375.1276916,
+      "trial_id": 54
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439376.143517,
+      "trial_id": 54
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439381.6600189,
+      "trial_id": 54
+    },
+    {
+      "details": {
+        "block": 3,
+        "class_index": 18,
+        "flicker_s": 5.516501899983268,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "long_frames": 0,
+        "max_interval_ms": 17.760300019290298,
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 18,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439381.6601414,
+      "trial_id": 54
+    },
+    {
+      "details": {
+        "block": 3,
+        "completed": 54,
+        "repeated": 0,
+        "valid": 54
+      },
+      "kind": "block_end",
+      "target_id": null,
+      "timestamp": 439382.6609318,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "title": "Block 3 of 5 done."
+      },
+      "kind": "rest_start",
+      "target_id": null,
+      "timestamp": 439382.660943,
+      "trial_id": 0
+    },
+    {
+      "details": {},
+      "kind": "rest_end",
+      "target_id": null,
+      "timestamp": 439412.6759332,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 4
+      },
+      "kind": "block_start",
+      "target_id": null,
+      "timestamp": 439414.1926004,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 1
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439414.2091507,
+      "trial_id": 55
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439415.2258911,
+      "trial_id": 55
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439420.742404,
+      "trial_id": 55
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 6,
+        "flicker_s": 5.51651290000882,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "long_frames": 0,
+        "max_interval_ms": 17.750800005160272,
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 1,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439420.7425689,
+      "trial_id": 55
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 2
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439421.7757665,
+      "trial_id": 56
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439422.7932849,
+      "trial_id": 56
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439428.3090464,
+      "trial_id": 56
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 3,
+        "flicker_s": 5.5157614999916404,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "long_frames": 0,
+        "max_interval_ms": 17.64580002054572,
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 2,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439428.3092152,
+      "trial_id": 56
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 3
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439429.3421671,
+      "trial_id": 57
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439430.3588343,
+      "trial_id": 57
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439435.875391,
+      "trial_id": 57
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 16,
+        "flicker_s": 5.516556699993089,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "long_frames": 0,
+        "max_interval_ms": 17.94669998344034,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 3,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439435.8755492,
+      "trial_id": 57
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 4
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439436.9087841,
+      "trial_id": 58
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439437.9253331,
+      "trial_id": 58
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439443.4418738,
+      "trial_id": 58
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 5,
+        "flicker_s": 5.516540699987672,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "long_frames": 0,
+        "max_interval_ms": 17.6723999902606,
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 4,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439443.4420616,
+      "trial_id": 58
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 5
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439444.4593841,
+      "trial_id": 59
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439445.4751518,
+      "trial_id": 59
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439450.9916811,
+      "trial_id": 59
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 1,
+        "flicker_s": 5.516529299959075,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "long_frames": 0,
+        "max_interval_ms": 18.041900009848177,
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 5,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439450.9918546,
+      "trial_id": 59
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 6
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439452.0248712,
+      "trial_id": 60
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439453.0415551,
+      "trial_id": 60
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439458.5581739,
+      "trial_id": 60
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 9,
+        "flicker_s": 5.516618800000288,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "long_frames": 0,
+        "max_interval_ms": 17.886599991470575,
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 6,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439458.5583469,
+      "trial_id": 60
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 7
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439459.5915965,
+      "trial_id": 61
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439460.6081222,
+      "trial_id": 61
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439466.1255562,
+      "trial_id": 61
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 7,
+        "flicker_s": 5.517433999979403,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "long_frames": 0,
+        "max_interval_ms": 17.98949996009469,
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 7,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439466.1258447,
+      "trial_id": 61
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 8
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439467.1579125,
+      "trial_id": 62
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439468.1745287,
+      "trial_id": 62
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439473.6910858,
+      "trial_id": 62
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 13,
+        "flicker_s": 5.516557099996135,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "long_frames": 0,
+        "max_interval_ms": 17.668900021817535,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 8,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439473.691229,
+      "trial_id": 62
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 9
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439474.7244538,
+      "trial_id": 63
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439475.7410921,
+      "trial_id": 63
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439481.2576265,
+      "trial_id": 63
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 2,
+        "flicker_s": 5.516534399997909,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "long_frames": 0,
+        "max_interval_ms": 17.952899972442538,
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 9,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439481.2577999,
+      "trial_id": 63
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 10
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439482.2909033,
+      "trial_id": 64
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439483.3075689,
+      "trial_id": 64
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439488.8241346,
+      "trial_id": 64
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 15,
+        "flicker_s": 5.516565700003412,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "long_frames": 0,
+        "max_interval_ms": 17.69490004517138,
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 10,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439488.8242765,
+      "trial_id": 64
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 11
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439489.8573841,
+      "trial_id": 65
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439490.8739522,
+      "trial_id": 65
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439496.3904963,
+      "trial_id": 65
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 11,
+        "flicker_s": 5.5165441000135615,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "long_frames": 0,
+        "max_interval_ms": 17.76000001700595,
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 11,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439496.390665,
+      "trial_id": 65
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 12
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439497.4238821,
+      "trial_id": 66
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439498.4404665,
+      "trial_id": 66
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439503.9570357,
+      "trial_id": 66
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 12,
+        "flicker_s": 5.516569199971855,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "long_frames": 0,
+        "max_interval_ms": 17.605300003197044,
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 12,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439503.9572055,
+      "trial_id": 66
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 13
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439504.9903503,
+      "trial_id": 67
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439506.0070175,
+      "trial_id": 67
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439511.5234936,
+      "trial_id": 67
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 14,
+        "flicker_s": 5.516476100019645,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "long_frames": 0,
+        "max_interval_ms": 17.71409995853901,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 13,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439511.52367,
+      "trial_id": 67
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 14
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439512.5410745,
+      "trial_id": 68
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439513.5569337,
+      "trial_id": 68
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439519.074305,
+      "trial_id": 68
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 17,
+        "flicker_s": 5.517371300025843,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "long_frames": 0,
+        "max_interval_ms": 18.02360004512593,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 14,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439519.0745365,
+      "trial_id": 68
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439520.1066054,
+      "trial_id": 69
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439521.1233256,
+      "trial_id": 69
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439526.6398423,
+      "trial_id": 69
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 10,
+        "flicker_s": 5.516516699979547,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "long_frames": 0,
+        "max_interval_ms": 17.81640003900975,
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 15,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439526.6400072,
+      "trial_id": 69
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439527.6731636,
+      "trial_id": 70
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439528.6898577,
+      "trial_id": 70
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439534.2063141,
+      "trial_id": 70
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 8,
+        "flicker_s": 5.516456399986055,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "long_frames": 0,
+        "max_interval_ms": 17.66379998298362,
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 16,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439534.2064772,
+      "trial_id": 70
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 17
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439535.2242718,
+      "trial_id": 71
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439536.239659,
+      "trial_id": 71
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439541.7561606,
+      "trial_id": 71
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 18,
+        "flicker_s": 5.516501599980984,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "long_frames": 0,
+        "max_interval_ms": 17.68600003561005,
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 17,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439541.7563199,
+      "trial_id": 71
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 18
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439542.7894615,
+      "trial_id": 72
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439543.806121,
+      "trial_id": 72
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439549.3225242,
+      "trial_id": 72
+    },
+    {
+      "details": {
+        "block": 4,
+        "class_index": 4,
+        "flicker_s": 5.516403200046625,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "long_frames": 0,
+        "max_interval_ms": 17.605400003958493,
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 18,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439549.3226535,
+      "trial_id": 72
+    },
+    {
+      "details": {
+        "block": 4,
+        "completed": 72,
+        "repeated": 0,
+        "valid": 72
+      },
+      "kind": "block_end",
+      "target_id": null,
+      "timestamp": 439550.323567,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "title": "Block 4 of 5 done."
+      },
+      "kind": "rest_start",
+      "target_id": null,
+      "timestamp": 439550.323577,
+      "trial_id": 0
+    },
+    {
+      "details": {},
+      "kind": "rest_end",
+      "target_id": null,
+      "timestamp": 439580.3385596,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 5
+      },
+      "kind": "block_start",
+      "target_id": null,
+      "timestamp": 439581.8552258,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 1
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439581.8717234,
+      "trial_id": 73
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439582.8884825,
+      "trial_id": 73
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 7,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 1
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439588.4049923,
+      "trial_id": 73
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 7,
+        "flicker_s": 5.516509800043423,
+        "frequency_hz": 15.4,
+        "label": "7",
+        "long_frames": 0,
+        "max_interval_ms": 17.587399983312935,
+        "page": 2,
+        "repeat": false,
+        "symbol": "7",
+        "trial_in_block": 1,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439588.4051478,
+      "trial_id": 73
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 2
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439589.4382665,
+      "trial_id": 74
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439590.4550096,
+      "trial_id": 74
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 17,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 2
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439595.9714584,
+      "trial_id": 74
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 17,
+        "flicker_s": 5.5164488000446,
+        "frequency_hz": 10.6,
+        "label": "SEND",
+        "long_frames": 0,
+        "max_interval_ms": 17.681199999060482,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SEND",
+        "trial_in_block": 2,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439595.971619,
+      "trial_id": 74
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 3
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439597.0048404,
+      "trial_id": 75
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439598.0215159,
+      "trial_id": 75
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 15,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 3
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439603.5388973,
+      "trial_id": 75
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 15,
+        "flicker_s": 5.517381400044542,
+        "frequency_hz": 10.4,
+        "label": "ABC",
+        "long_frames": 0,
+        "max_interval_ms": 17.704500001855195,
+        "page": 2,
+        "repeat": false,
+        "symbol": "ABC",
+        "trial_in_block": 3,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439603.5390519,
+      "trial_id": 75
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 4
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439604.571343,
+      "trial_id": 76
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439605.5879034,
+      "trial_id": 76
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 9,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 4
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439611.1044645,
+      "trial_id": 76
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 9,
+        "flicker_s": 5.516561099968385,
+        "frequency_hz": 13.2,
+        "label": "9",
+        "long_frames": 0,
+        "max_interval_ms": 18.101599998772144,
+        "page": 2,
+        "repeat": false,
+        "symbol": "9",
+        "trial_in_block": 4,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439611.1046167,
+      "trial_id": 76
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439612.137707,
+      "trial_id": 77
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439613.1553324,
+      "trial_id": 77
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 11,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439618.670951,
+      "trial_id": 77
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 11,
+        "flicker_s": 5.515618600009475,
+        "frequency_hz": 8.2,
+        "label": ",",
+        "long_frames": 0,
+        "max_interval_ms": 17.618399986531585,
+        "page": 2,
+        "repeat": false,
+        "symbol": ",",
+        "trial_in_block": 5,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439618.6711013,
+      "trial_id": 77
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439619.7043141,
+      "trial_id": 78
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439620.7208695,
+      "trial_id": 78
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 13,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439626.2373658,
+      "trial_id": 78
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 13,
+        "flicker_s": 5.516496299998835,
+        "frequency_hz": 15.8,
+        "label": "MENU",
+        "long_frames": 0,
+        "max_interval_ms": 17.83099997555837,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACK_MENU",
+        "trial_in_block": 6,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439626.2375195,
+      "trial_id": 78
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 7
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439627.2707801,
+      "trial_id": 79
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439628.2873744,
+      "trial_id": 79
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 3,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 7
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439633.8039247,
+      "trial_id": 79
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 3,
+        "flicker_s": 5.516550300002564,
+        "frequency_hz": 11.0,
+        "label": "3",
+        "long_frames": 0,
+        "max_interval_ms": 17.725300043821335,
+        "page": 2,
+        "repeat": false,
+        "symbol": "3",
+        "trial_in_block": 7,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439633.8040168,
+      "trial_id": 79
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439634.8214412,
+      "trial_id": 80
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439635.8372336,
+      "trial_id": 80
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 14,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439641.3536783,
+      "trial_id": 80
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 14,
+        "flicker_s": 5.5164447000133805,
+        "frequency_hz": 15.2,
+        "label": "DEL",
+        "long_frames": 0,
+        "max_interval_ms": 17.7232000278309,
+        "page": 2,
+        "repeat": false,
+        "symbol": "BACKSPACE",
+        "trial_in_block": 8,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439641.3538441,
+      "trial_id": 80
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 9
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439642.3869432,
+      "trial_id": 81
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439643.4036873,
+      "trial_id": 81
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 16,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 9
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439648.9201137,
+      "trial_id": 81
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 16,
+        "flicker_s": 5.516426399990451,
+        "frequency_hz": 14.6,
+        "label": "SPACE",
+        "long_frames": 0,
+        "max_interval_ms": 17.606399953365326,
+        "page": 2,
+        "repeat": false,
+        "symbol": "SPACE",
+        "trial_in_block": 9,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439648.9202384,
+      "trial_id": 81
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 10
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439649.9535521,
+      "trial_id": 82
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439650.9701599,
+      "trial_id": 82
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 10,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 10
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439656.486731,
+      "trial_id": 82
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 10,
+        "flicker_s": 5.516571099986322,
+        "frequency_hz": 9.4,
+        "label": "0",
+        "long_frames": 0,
+        "max_interval_ms": 17.654600029345602,
+        "page": 2,
+        "repeat": false,
+        "symbol": "0",
+        "trial_in_block": 10,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439656.4869006,
+      "trial_id": 82
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 11
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439657.5200459,
+      "trial_id": 83
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439658.5367066,
+      "trial_id": 83
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 18,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 11
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439664.0533286,
+      "trial_id": 83
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 18,
+        "flicker_s": 5.516622000024654,
+        "frequency_hz": 10.2,
+        "label": "REPLAY",
+        "long_frames": 0,
+        "max_interval_ms": 17.863299988675863,
+        "page": 2,
+        "repeat": false,
+        "symbol": "REPLAY",
+        "trial_in_block": 11,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439664.0535158,
+      "trial_id": 83
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439665.0864822,
+      "trial_id": 84
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439666.1031067,
+      "trial_id": 84
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 6,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439671.6196892,
+      "trial_id": 84
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 6,
+        "flicker_s": 5.51658250001492,
+        "frequency_hz": 9.0,
+        "label": "6",
+        "long_frames": 0,
+        "max_interval_ms": 18.227599968668073,
+        "page": 2,
+        "repeat": false,
+        "symbol": "6",
+        "trial_in_block": 12,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439671.6198257,
+      "trial_id": 84
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 13
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439672.6372689,
+      "trial_id": 85
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439673.6529768,
+      "trial_id": 85
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 5,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 13
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439679.170579,
+      "trial_id": 85
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 5,
+        "flicker_s": 5.5176022000378,
+        "frequency_hz": 13.0,
+        "label": "5",
+        "long_frames": 0,
+        "max_interval_ms": 18.236299976706505,
+        "page": 2,
+        "repeat": false,
+        "symbol": "5",
+        "trial_in_block": 13,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439679.1707821,
+      "trial_id": 85
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439680.2027669,
+      "trial_id": 86
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439681.2195215,
+      "trial_id": 86
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 4,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439686.7359849,
+      "trial_id": 86
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 4,
+        "flicker_s": 5.5164633999811485,
+        "frequency_hz": 15.6,
+        "label": "4",
+        "long_frames": 0,
+        "max_interval_ms": 17.855399986729026,
+        "page": 2,
+        "repeat": false,
+        "symbol": "4",
+        "trial_in_block": 14,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439686.7361348,
+      "trial_id": 86
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 15
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439687.7693359,
+      "trial_id": 87
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439688.7860017,
+      "trial_id": 87
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 8,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 15
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439694.30252,
+      "trial_id": 87
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 8,
+        "flicker_s": 5.516518300049938,
+        "frequency_hz": 8.0,
+        "label": "8",
+        "long_frames": 0,
+        "max_interval_ms": 17.652900016400963,
+        "page": 2,
+        "repeat": false,
+        "symbol": "8",
+        "trial_in_block": 15,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439694.3026832,
+      "trial_id": 87
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 16
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439695.3357456,
+      "trial_id": 88
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439696.3524843,
+      "trial_id": 88
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 2,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 16
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439701.8698403,
+      "trial_id": 88
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 2,
+        "flicker_s": 5.517356000025757,
+        "frequency_hz": 13.6,
+        "label": "2",
+        "long_frames": 0,
+        "max_interval_ms": 17.855499987490475,
+        "page": 2,
+        "repeat": false,
+        "symbol": "2",
+        "trial_in_block": 16,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439701.8699987,
+      "trial_id": 88
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 17
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439702.9022698,
+      "trial_id": 89
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439703.9189219,
+      "trial_id": 89
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 12,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 17
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439709.4354441,
+      "trial_id": 89
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 12,
+        "flicker_s": 5.516522200021427,
+        "frequency_hz": 11.6,
+        "label": ".",
+        "long_frames": 0,
+        "max_interval_ms": 17.8963000071235,
+        "page": 2,
+        "repeat": false,
+        "symbol": ".",
+        "trial_in_block": 17,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439709.4356118,
+      "trial_id": 89
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18
+      },
+      "kind": "cue_onset",
+      "target_id": null,
+      "timestamp": 439710.4686785,
+      "trial_id": 90
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_onset",
+      "target_id": null,
+      "timestamp": 439711.4853794,
+      "trial_id": 90
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 1,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18
+      },
+      "kind": "stimulus_offset",
+      "target_id": null,
+      "timestamp": 439717.0028733,
+      "trial_id": 90
+    },
+    {
+      "details": {
+        "block": 5,
+        "class_index": 1,
+        "flicker_s": 5.51749389996985,
+        "frequency_hz": 8.6,
+        "label": "1",
+        "long_frames": 0,
+        "max_interval_ms": 17.885499983094633,
+        "page": 2,
+        "repeat": false,
+        "symbol": "1",
+        "trial_in_block": 18,
+        "valid": true
+      },
+      "kind": "trial_qc",
+      "target_id": null,
+      "timestamp": 439717.0030379,
+      "trial_id": 90
+    },
+    {
+      "details": {
+        "block": 5,
+        "completed": 90,
+        "repeated": 0,
+        "valid": 90
+      },
+      "kind": "block_end",
+      "target_id": null,
+      "timestamp": 439718.0186177,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "completed": 90,
+        "repeated": 0,
+        "valid": 90
+      },
+      "kind": "collection_end",
+      "target_id": null,
+      "timestamp": 439718.0186269,
+      "trial_id": 0
+    },
+    {
+      "details": {
+        "stop_reason": "Collection complete: 90 valid of 90 trials"
+      },
+      "kind": "session_end",
+      "target_id": null,
+      "timestamp": 439721.7150815,
+      "trial_id": 0
+    }
+  ],
+  "export_status": "pending",
+  "manifest_file": "manifest.json",
+  "program": {
+    "export_schema_version": 6,
+    "numpy_version": "2.2.6",
+    "program_version": "dual-mode-continuous-recording-6",
+    "python_version": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+    "record_schema_version": 5,
+    "runtime_environment": {
+      "bits": 64,
+      "executable": "C:\\Users\\admin\\Desktop\\EEG_SSVEP_FBCCA\\.venv\\Scripts\\python.exe",
+      "machine": "AMD64",
+      "mne_lsl_lib_override": null,
+      "packages": {
+        "ImageIO": "2.38.0",
+        "Jinja2": "3.1.6",
+        "MarkupSafe": "3.0.4",
+        "PyQt6": "6.11.0",
+        "PyQt6-Qt6": "6.11.2",
+        "PyQt6_sip": "13.13.0",
+        "PyYAML": "6.0.3",
+        "QtPy": "2.4.3",
+        "annotated-types": "0.8.0",
+        "arabic-reshaper": "3.0.1",
+        "astunparse": "1.6.3",
+        "beautifulsoup4": "4.15.0",
+        "blosc2": "4.3.3",
+        "certifi": "2026.10.19",
+        "cffi": "2.1.1",
+        "charset-normalizer": "3.5.2",
+        "click": "8.5.0",
+        "colorama": "0.4.6",
+        "contourpy": "1.3.2",
+        "cycler": "0.12.1",
+        "decorator": "5.3.1",
+        "elementpath": "5.1.4",
+        "esprima": "4.0.1",
+        "et_xmlfile": "2.0.0",
+        "ffpyplayer": "4.5.3",
+        "fonttools": "4.65.0",
+        "freetype-py": "2.5.1",
+        "future": "1.0.0",
+        "gevent": "25.5.1",
+        "greenlet": "3.5.6",
+        "i18next": "0.0.3",
+        "idna": "3.20",
+        "imageio-ffmpeg": "0.6.0",
+        "jedi": "0.20.1",
+        "json-tricks": "3.17.3",
+        "kiwisolver": "1.5.1",
+        "lazy-loader": "0.6",
+        "matplotlib": "3.10.9",
+        "meshpy": "2026.1.1",
+        "mne": "1.12.1",
+        "mne_lsl": "1.12.0",
+        "moviepy": "2.2.1",
+        "msgpack": "1.2.3",
+        "msgpack-numpy": "0.4.8",
+        "ndindex": "1.10.1",
+        "numexpr": "2.14.1",
+        "numpy": "2.2.6",
+        "opencv-python": "5.0.0.93",
+        "openpyxl": "3.1.5",
+        "packaging": "26.3",
+        "pandas": "2.3.3",
+        "parso": "0.8.7",
+        "pillow": "11.3.0",
+        "pip": "26.2.2",
+        "platformdirs": "4.12.4",
+        "pooch": "1.9.0",
+        "proglog": "0.1.12",
+        "psutil": "7.2.2",
+        "psychopy": "2026.2.4",
+        "psychtoolbox": "3.0.22.2",
+        "py-cpuinfo": "9.0.0",
+        "pyWinhook": "1.6.2",
+        "pyarrow": "25.0.1",
+        "pycparser": "3.11",
+        "pydantic": "2.14.1",
+        "pydantic_core": "2.50.1",
+        "pyglet": "1.4.11",
+        "pyparallel": "0.2.2",
+        "pyparsing": "3.3.3",
+        "pypiwin32": "223",
+        "pyqtgraph": "0.14.0",
+        "pyserial": "3.5",
+        "python-bidi": "0.6.12",
+        "python-dateutil": "2.9.0.post0",
+        "python-dotenv": "1.2.4",
+        "python-vlc": "3.0.21203",
+        "pytz": "2026.5",
+        "pywin32": "312",
+        "pyzmq": "27.2.0",
+        "questplus": "2023.1",
+        "requests": "2.34.2",
+        "scipy": "1.15.3",
+        "setuptools": "65.5.0",
+        "six": "1.17.0",
+        "sounddevice": "0.5.6",
+        "soundfile": "0.14.0",
+        "soupsieve": "2.10",
+        "ssvep-fbcca-keyboard": "0.1.0",
+        "tables": "3.10.1",
+        "threadpoolctl": "3.7.0",
+        "tomli": "2.5.0",
+        "tqdm": "4.70.1",
+        "typing-inspection": "0.4.4",
+        "typing_extensions": "4.16.0",
+        "tzdata": "2026.5",
+        "ujson": "6.0.0",
+        "urllib3": "2.8.0",
+        "websockets": "16.1.1",
+        "wheel": "0.48.0",
+        "xarray": "2025.6.1",
+        "xmlschema": "4.3.2",
+        "zope.event": "5.0",
+        "zope.interface": "7.2"
+      },
+      "platform": "Windows-10-10.0.26200-SP0",
+      "prefix": "C:\\Users\\admin\\Desktop\\EEG_SSVEP_FBCCA\\.venv",
+      "python": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]"
+    },
+    "source_file": "recording.py",
+    "source_sha256": "0ca590cd215f802ef109f39d478ec0dbd5388c5cf0e11ce3638457cf051a18b7"
+  },
+  "schema_version": 5,
+  "stop_reason": "Collection complete: 90 valid of 90 trials",
+  "summary": {
+    "accuracy": null,
+    "attempted": 0,
+    "completed": 0,
+    "ground_truth_available": false,
+    "input_actions": 0,
+    "invalid_or_aborted": 0,
+    "itr_bits_per_minute": null,
+    "mode": "free",
+    "rejected": 0,
+    "typed_text": "",
+    "valid": 0
+  },
+  "typed_text": ""
+}

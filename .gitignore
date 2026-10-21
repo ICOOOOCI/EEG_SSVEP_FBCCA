@@ -5,7 +5,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
-session_records/
 src/ssvep_fbcca/session_records/
 offline_results/
 
