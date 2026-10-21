@@ -6,6 +6,8 @@ deepseek_model = "deepseek-chat"
 deepseek_api_url = "https://api.deepseek.com/chat/completions"
 deepseek_api_key_env = "DEEPSEEK_API_KEY"
 deepseek_timeout_s = 60.0
+# 系统提示词默认值见 config.py（面向 ALS/BCI 用户）；如需替换可在此填写单行字符串：
+# deepseek_system_prompt = "..."
 protocol = "standard_5s"
 blocks = 3
 random_seed = 20260928
@@ -42,9 +44,32 @@ rejection_min_margin = 0.0
 rejection_max_alpha_ratio = 2.7631716193293068
 rejection_calibration_id = "offline_20261019_target12_screen_around_eyes"
 
+[chatbox]
+# 模式三无障碍：朗读回复与语音提示、语速(-10..10)、语音确认所选键、
+# 所选键高亮时长、读完回复后停留多久再恢复闪烁输入。
+chatbox_voice_enabled = true
+chatbox_voice_rate = -1
+chatbox_speak_selections = true
+chatbox_feedback_s = 0.6
+chatbox_reading_chars_per_s = 14.0
+chatbox_reply_hold_s = 3.0
+# 输入法式单词预测：字母页顶部 3 个候选词键；DeepSeek 上下文预测；每轮前最多等待秒数。
+# 关闭 chatbox_predictions_enabled 可恢复为 30 个目标（不含候选键）。
+chatbox_predictions_enabled = true
+chatbox_llm_predictions = true
+chatbox_prediction_wait_s = 1.0
+# 不打算输入时的保护：用 [rejection] 阈值拦截"没在看键盘"的轮次（不输入任何字符）；
+# 连续 chatbox_auto_rest_after 轮被拦截就自动休息（只剩 WAKE 键闪烁），
+# 连续 chatbox_wake_rounds 轮注视 WAKE 恢复输入。数字页的 REST 键可主动休息。
+chatbox_rejection_enabled = true
+chatbox_auto_rest_after = 3
+chatbox_wake_rounds = 2
+
 [display]
+# true：全屏（默认）。false：可拖动缩放、可最大化的窗口，键盘随窗口大小重新排布（闪烁进行中不重排）。
+# 也可用启动参数 --fullscreen / --windowed 临时切换。
 full_screen = true
 screen_index = 0
-window_size = [1920, 1080]
+window_size = [1280, 800]
 viewing_distance_cm = 70.0
 

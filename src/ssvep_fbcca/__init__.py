@@ -4,6 +4,12 @@
 稳定符号，避免把第三方依赖和内部辅助函数泄漏成隐式 API。
 """
 
+import os as _os
+
+# liblsl 在首次加载时读取 LSLAPICFG；必须早于任何 mne_lsl 导入。默认只显示警告/错误，
+# 用户已自行设置 LSLAPICFG 时不覆盖。
+_os.environ.setdefault("LSLAPICFG", _os.path.join(_os.path.dirname(__file__), "data", "lsl_api.cfg"))
+
 from .common import (
     AbortSession, DegenerateSignalError, InvalidTrial, PauseSelection,
     RuntimeFault, check_environment, configure_console, fault_record,
@@ -28,7 +34,7 @@ from .quality import spectral_quality
 from .intent import alpha_power_ratio
 from .recording import (
     ContinuousRecording, SessionRecorder, export_cued_sidecars,
-    package_cued_session, package_recording_files,
+    package_cued_session, package_recording_files, tidy_session_archive, write_tidy_archive,
 )
 from .analysis import (
     frame_diagnostics, itr_bits_per_minute, make_luminance_table, make_schedule,
@@ -37,6 +43,8 @@ from .analysis import (
 )
 from .ui import MainThreadGraphicsGC, PsychoPyKeyboard, calculate_keyboard_layout, keyboard_layout_info
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
+from .voice import Speaker, make_speaker
+from .wheelchair import DEFAULT_DIRECTION_BY_CLASS, WheelchairBridgeClient, WheelchairBridgeError
 from .app import cli, main, observe_lsl_timing, static_ui_self_test
 
 __all__ = [
@@ -53,13 +61,12 @@ __all__ = [
     "decode_trial", "EventMarkers", "EventStamp", "TrialLedger", "TrialRecord", "spectral_quality",
     "alpha_power_ratio",
     "ContinuousRecording", "SessionRecorder", "export_cued_sidecars", "package_cued_session",
-    "package_recording_files", "frame_diagnostics", "itr_bits_per_minute", "make_luminance_table",
+    "package_recording_files", "tidy_session_archive", "write_tidy_archive", "frame_diagnostics",
+    "itr_bits_per_minute", "make_luminance_table",
     "make_schedule", "output_display_text", "preflight_transport", "print_free_summary",
     "print_summary", "summarize_free_trials", "summarize_trials", "MainThreadGraphicsGC",
     "PsychoPyKeyboard", "calculate_keyboard_layout", "keyboard_layout_info", "cli", "main",
     "observe_lsl_timing", "static_ui_self_test", "ChatBackendError", "ChatMessage",
-    "DeepSeekChatBackend",
+    "DeepSeekChatBackend", "Speaker", "make_speaker",
     "DEFAULT_DIRECTION_BY_CLASS", "WheelchairBridgeClient", "WheelchairBridgeError",
 ]
-
-from .wheelchair import DEFAULT_DIRECTION_BY_CLASS, WheelchairBridgeClient, WheelchairBridgeError

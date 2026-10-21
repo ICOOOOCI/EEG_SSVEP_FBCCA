@@ -81,7 +81,29 @@ class Config:
     deepseek_api_key_env: str = "DEEPSEEK_API_KEY"
     deepseek_api_key_file: Optional[str] = None
     deepseek_timeout_s: float = 60.0
-    deepseek_system_prompt: Optional[str] = None
+    # 模式三用户通过 BCI 逐字输入（如 ALS 患者）；回复需简短、纯文本、便于朗读。
+    deepseek_system_prompt: Optional[str] = (
+        "The user has ALS and types with a brain-computer interface, one letter at a "
+        "time, in capital letters, often without punctuation and with occasional typos. "
+        "Interpret short or misspelled messages generously. Reply in the user's language "
+        "with short, clear, plain text (no Markdown, lists, tables or emoji) because the "
+        "reply is shown on screen and read aloud. When you need more information, ask one "
+        "simple question that can be answered with a word or two."
+    )
+    # 模式三无障碍选项（面向无法用手操作的用户，如 ALS）。
+    chatbox_voice_enabled: bool = True          # 朗读回复和语音提示
+    chatbox_voice_rate: int = -1                # 语速 -10..10，略慢更易听清
+    chatbox_speak_selections: bool = True       # 每次识别后读出所选键
+    chatbox_feedback_s: float = 0.6             # 所选键高亮确认时长
+    chatbox_reading_chars_per_s: float = 14.0   # 无语音进度时的估计滚动速度
+    chatbox_reply_hold_s: float = 3.0           # 读完后停留时间，再恢复闪烁输入
+    chatbox_predictions_enabled: bool = True    # 字母页顶部三个候选词键（关闭则为30个目标）
+    chatbox_llm_predictions: bool = True        # 候选词同时参考 DeepSeek 上下文预测
+    chatbox_prediction_wait_s: float = 1.0      # 每轮开始前最多等待 DeepSeek 候选的时间
+    # 不打算输入时的保护：复用 rejection_* 阈值拦截低置信轮次；连续若干轮被拦截则自动休息。
+    chatbox_rejection_enabled: bool = True
+    chatbox_auto_rest_after: int = 3            # 连续被拦截轮数后进入休息；0 = 不自动休息
+    chatbox_wake_rounds: int = 2                # 休息时需连续注视 WAKE 的轮数
     free_prepare_s: float = 1.0
     protocol: str = "standard_5s"
     blocks: int = 3
@@ -259,6 +281,23 @@ class Config:
             raise ValueError("deepseek_timeout_s 必须为有限正数")
         if self.deepseek_system_prompt is not None and not isinstance(self.deepseek_system_prompt, str):
             raise ValueError("deepseek_system_prompt 必须是字符串或空值")
+        for name in ("chatbox_voice_enabled", "chatbox_speak_selections",
+                     "chatbox_predictions_enabled", "chatbox_llm_predictions",
+                     "chatbox_rejection_enabled"):
+            if not isinstance(getattr(self, name), bool):
+                raise ValueError(f"{name} 必须为 true 或 false")
+        for name, low in (("chatbox_auto_rest_after", 0), ("chatbox_wake_rounds", 1)):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < low:
+                raise ValueError(f"{name} 必须为 >= {low} 的整数")
+        if (isinstance(self.chatbox_voice_rate, bool) or not isinstance(self.chatbox_voice_rate, int)
+                or not -10 <= self.chatbox_voice_rate <= 10):
+            raise ValueError("chatbox_voice_rate 必须为 -10 到 10 的整数")
+        for name in ("chatbox_feedback_s", "chatbox_reading_chars_per_s", "chatbox_reply_hold_s",
+                     "chatbox_prediction_wait_s"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value < 0 or (name == "chatbox_reading_chars_per_s" and value == 0):
+                raise ValueError(f"{name} 必须为有限非负数（语速须为正数）")
         if self.timestamp_mode not in ("lsl", "auto", "strict", "openbci"):
             raise ValueError("timestamp_mode 必须为 lsl；旧值仅供历史会话离线读取")
         if not isinstance(self.continue_on_timestamp_anomaly, bool):

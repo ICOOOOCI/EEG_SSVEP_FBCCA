@@ -671,10 +671,14 @@ class SessionRecorder:
             sidecars: dict[str, str] = {}
             if self.cfg.session_mode == "cued":
                 sidecars = export_cued_sidecars(self.session_path)
-                package_cued_session(self.session_path, destination=self.archive_path,
-                    extra_sources=[path for key, path in timing_files.items() if key != "events"])
-            else:
-                package_recording_files([self.session_path, *timing_files.values()], self.archive_path)
+            stem = self.session_dir.name
+
+            def open_member(suffix: str) -> Any:
+                """打开会话目录中的导出文件；不存在时返回 None。"""
+                path = self.session_dir / (stem + suffix)
+                return path.open("rb") if path.is_file() else None
+
+            write_tidy_archive(open_member, stem, self.archive_path)
             self.export_artifacts = {"session": str(self.archive_path)}
         except Exception as exc:
             payload["export_status"] = "failed"
@@ -824,6 +828,184 @@ def package_recording_files(sources: Sequence[Path], archive_path: Path, *,
         for path in sources:
             path.unlink()
     return str(archive_path)
+
+TIDY_ARCHIVE_FORMAT = "ssvep_session_v1"
+
+_TIDY_README = """SSVEP 会话记录（{session_id}）
+
+eeg_raw.npz      连续原始EEG：从采集开始到结束的全部LSL通道，未滤波。
+                 data           通道 x 样本（原始数据类型，单位同采集软件）
+                 timestamps     每个样本的LSL时间（秒），与events.csv同一时钟
+                 fs             标称采样率（Hz）
+                 channel_names  全部通道名；eeg_channel_indices 为参与分类的通道
+trials.npz       逐试次原始EEG窗口（仅参与分类的通道，未滤波）。
+                 trial_ids / labels / predictions   标签与预测为1起的目标编号，-1表示未知
+                 trial_NNNN_eeg         通道 x 样本
+                 trial_NNNN_timestamps  样本LSL时间
+                 trial_NNNN_scores      各目标的FBCCA得分
+events.csv       事件时间线（提示、闪烁开始/结束、试次结束等）及对应目标和预测。
+info.json        会话摘要：模式、配置、准确率/ITR、通道、逐试次结果表。
+model.pkl        （仅模式2）个人校准模型，可用 --calibration-file 加载本ZIP。
+
+读取示例（Python）：
+    import numpy as np, zipfile
+    z = zipfile.ZipFile("{session_id}.zip")
+    eeg = np.load(z.open("eeg_raw.npz"))
+    data, t = eeg["data"], eeg["timestamps"]
+"""
+
+
+def _trial_summary(trial: dict) -> dict:
+    """抽取单个试次在摘要表中需要的字段。"""
+    def symbol(target: Optional[int]) -> Optional[str]:
+        return TARGETS[target - 1].symbol if target else None
+    return {"trial_id": trial["trial_id"], "block_id": trial.get("block_id"),
+            "status": trial.get("status"), "reason": trial.get("reason") or None,
+            "target": trial.get("true_class"), "target_symbol": symbol(trial.get("true_class")),
+            "target_frequency_hz": trial.get("true_frequency_hz"),
+            "prediction": trial.get("prediction"), "prediction_symbol": symbol(trial.get("prediction")),
+            "predicted_frequency_hz": trial.get("frequency_hz"),
+            "cca_prediction": trial.get("cca_prediction"),
+            "text_applied": trial.get("text_applied"),
+            "stimulus_onset": trial.get("stimulus_onset"), "stimulus_offset": trial.get("stimulus_offset"),
+            "window_start": trial.get("requested_window_start"),
+            "window_end": trial.get("requested_window_end")}
+
+
+def write_tidy_archive(open_member: Callable[[str], Any], stem: str, destination: str | Path) -> str:
+    """把会话导出文件整理为精简ZIP：连续原始EEG、试次EEG、事件、摘要及模式2模型。
+
+    ``open_member(suffix)`` 返回 ``stem + suffix`` 的可读二进制句柄，不存在时返回 None；
+    磁盘上的导出目录和旧版完整ZIP都可通过它读取。
+    """
+    destination = Path(destination)
+    if destination.exists():
+        raise FileExistsError(f"会话ZIP已存在，不覆盖：{destination}")
+
+    def required(suffix: str) -> Any:
+        handle = open_member(suffix)
+        if handle is None:
+            raise FileNotFoundError(f"缺少会话文件：{stem}{suffix}")
+        return handle
+
+    with required("_metadata.json") as handle:
+        metadata = json.load(handle)
+    qc_handle = open_member("_qc.json")
+    qc = None
+    if qc_handle is not None:
+        with qc_handle:
+            qc = json.load(qc_handle)
+    entry = SessionRecorder._npz_entry
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temp = destination.with_name(destination.name + f".tmp-{uuid.uuid4().hex}")
+    with tempfile.TemporaryDirectory(prefix=".tidy-", dir=destination.parent) as folder:
+        staging = Path(folder)
+        stream = metadata.get("acquisition_metadata") or {}
+        with required("_continuous_eeg.npz") as handle, np.load(handle, allow_pickle=False) as source:
+            selected = source["selected_eeg_channel_indices"]
+            channels = source["source_data"].shape[0]
+            names = [c.get("label") for c in stream.get("all_channels", [])]
+            if len(names) != channels or not all(names) or "UNKNOWN" in names:
+                names = [f"CH{i + 1}" for i in range(channels)]
+            with zipfile.ZipFile(staging / "eeg_raw.npz", "w", zipfile.ZIP_DEFLATED, allowZip64=True) as npz:
+                entry(npz, "data", source["source_data"])
+                entry(npz, "timestamps", source["lag_corrected_lsl_timestamps"])
+                entry(npz, "fs", float(stream.get("nominal_fs") or math.nan))
+                entry(npz, "channel_names", np.asarray(names, dtype=str))
+                entry(npz, "eeg_channel_indices", selected)
+        with required(".npz") as handle, np.load(handle, allow_pickle=False) as source:
+            session = json.loads(source["metadata_json"].item())
+            trials = session["trials"]
+            with zipfile.ZipFile(staging / "trials.npz", "w", zipfile.ZIP_DEFLATED, allowZip64=True) as npz:
+                entry(npz, "trial_ids", np.asarray([t["trial_id"] for t in trials], dtype=np.int64))
+                entry(npz, "labels", np.asarray([t["true_class"] or -1 for t in trials], dtype=np.int64))
+                entry(npz, "predictions", np.asarray([t.get("prediction") or -1 for t in trials], dtype=np.int64))
+                entry(npz, "fs", np.asarray([t.get("sampling_rate_hz") or math.nan for t in trials]))
+                session_config = session.get("config") or {}
+                entry(npz, "channel_indices", np.asarray(session_config.get("channel_indices", selected), dtype=np.int64))
+                entry(npz, "channel_labels", np.asarray(session_config.get("channel_labels") or
+                                                        [f"CH{int(i) + 1}" for i in selected], dtype=str))
+                has_eeg = []
+                for trial in trials:
+                    prefix = f"trial_{trial['trial_id']:04d}_"
+                    present = prefix + "source_data" in source.files
+                    has_eeg.append(present)
+                    if present:
+                        entry(npz, prefix + "eeg", source[prefix + "source_data"])
+                        entry(npz, prefix + "timestamps", source[prefix + "source_local_timestamps"])
+                    if prefix + "scores" in source.files:
+                        entry(npz, prefix + "scores", source[prefix + "scores"])
+                entry(npz, "has_eeg", np.asarray(has_eeg, dtype=bool))
+        trial_by_id = {t["trial_id"]: t for t in trials}
+        with (staging / "events.csv").open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=(
+                "timestamp", "event", "trial_id", "target", "target_symbol", "target_frequency_hz",
+                "prediction", "prediction_symbol", "status", "details"))
+            writer.writeheader()
+            for event in metadata.get("events", []):
+                row = _trial_summary(trial_by_id[event["trial_id"]]) if event["trial_id"] in trial_by_id else {}
+                target = event.get("target_id")
+                writer.writerow({"timestamp": event.get("timestamp"), "event": event["kind"],
+                    "trial_id": event["trial_id"], "target": target,
+                    "target_symbol": TARGETS[target - 1].symbol if target else None,
+                    "target_frequency_hz": TARGETS[target - 1].frequency_hz if target else None,
+                    "prediction": row.get("prediction"), "prediction_symbol": row.get("prediction_symbol"),
+                    "status": row.get("status"),
+                    "details": json.dumps(event.get("details") or {}, ensure_ascii=False, separators=(",", ":"))})
+        config = metadata.get("config") or session.get("config") or {}
+        info = {
+            "format": TIDY_ARCHIVE_FORMAT, "session_id": stem,
+            "created_utc": metadata.get("created_utc"), "mode": config.get("session_mode"),
+            "stop_reason": metadata.get("stop_reason"), "typed_text": metadata.get("typed_text"),
+            "summary": metadata.get("summary"), "decoder_settings": metadata.get("decoder_settings"),
+            "stream": {key: stream.get(key) for key in ("name", "type", "source_id", "channel_count", "nominal_fs")},
+            "eeg_channels": {"indices": [int(i) for i in selected], "labels": config.get("channel_labels")},
+            "timing": {"device_timestamp_lag_s": config.get("device_timestamp_lag_s"),
+                       "response_delay_s": config.get("response_delay_s"),
+                       "timestamp_clock": "LSL local_clock, dejittered; eeg_raw timestamps already lag-corrected"},
+            "recording": metadata.get("recording"),
+            "quality": ({"presentation": qc.get("presentation_qc"), "signal": qc.get("signal_qc")}
+                        if qc else None),
+            "model": qc.get("model") if qc else None,
+            "program_version": (metadata.get("program") or {}).get("program_version"),
+            "config": config, "trials": [_trial_summary(t) for t in trials],
+        }
+        SessionRecorder._atomic_json(staging / "info.json", info)
+        (staging / "README.txt").write_text(_TIDY_README.format(session_id=stem), encoding="utf-8")
+        members = ["README.txt", "info.json", "eeg_raw.npz", "trials.npz", "events.csv"]
+        model_handle = open_member("_model.pkl")
+        if model_handle is not None:
+            with model_handle, (staging / "model.pkl").open("wb") as out:
+                for chunk in iter(lambda: model_handle.read(1024 * 1024), b""):
+                    out.write(chunk)
+            members.append("model.pkl")
+        try:
+            with zipfile.ZipFile(temp, "w", compression=zipfile.ZIP_DEFLATED,
+                                 compresslevel=6, allowZip64=True) as archive:
+                for name in members:
+                    # NPZ 本身已压缩，外层只存储，避免重复压缩耗时。
+                    archive.write(staging / name, arcname=name,
+                                  compress_type=zipfile.ZIP_STORED if name.endswith(".npz") else None)
+            with zipfile.ZipFile(temp) as archive:
+                if archive.namelist() != members or archive.testzip() is not None:
+                    raise RuntimeError("会话ZIP目录或CRC校验失败")
+            with temp.open("r+b") as handle:
+                os.fsync(handle.fileno())
+            os.replace(temp, destination)
+        finally:
+            temp.unlink(missing_ok=True)
+    return str(destination)
+
+
+def tidy_session_archive(source: str | Path, destination: Optional[str | Path] = None) -> str:
+    """把旧版完整会话ZIP转换为精简格式；原ZIP保持不变。"""
+    source = Path(source)
+    destination = Path(destination) if destination is not None else source.with_name(source.stem + "_tidy.zip")
+    with zipfile.ZipFile(source) as archive:
+        names = set(archive.namelist())
+        return write_tidy_archive(
+            lambda suffix: archive.open(source.stem + suffix) if source.stem + suffix in names else None,
+            source.stem, destination)
 
 
 

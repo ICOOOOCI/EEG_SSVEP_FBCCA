@@ -348,7 +348,11 @@ def cli(argv=None) -> int:
     parser.add_argument("--warmup-seconds", type=positive_seconds,
                         help="EEG预热秒数；普通启动默认10秒，时间轴诊断默认30秒；"
                              "history模式至少收齐4秒历史及2.1秒检查数据")
-    parser.add_argument("--windowed", action="store_true", help="使用1280×800窗口")
+    # 两者可同时出现，以最后一个为准：启动器默认传 --fullscreen，用户追加 --windowed 即可覆盖。
+    parser.add_argument("--windowed", dest="full_screen", action="store_const", const=False,
+                        help="可拖动缩放的窗口（初始尺寸取配置 window_size）")
+    parser.add_argument("--fullscreen", dest="full_screen", action="store_const", const=True,
+                        help="全屏显示")
     parser.add_argument("--screen", type=int, help="显示器编号，从0开始")
     parser.add_argument("--record-root", help="会话保存目录")
     for signal in SYNC_CHANNELS:
@@ -437,8 +441,8 @@ def cli(argv=None) -> int:
             cfg.response_delay_s = args.response_delay
         if args.seed is not None:
             cfg.random_seed = args.seed
-        if args.windowed:
-            cfg.full_screen, cfg.window_size = False, (1280, 800)
+        if args.full_screen is not None:
+            cfg.full_screen = args.full_screen
         if args.screen is not None:
             cfg.screen_index = args.screen
         if args.record_root:

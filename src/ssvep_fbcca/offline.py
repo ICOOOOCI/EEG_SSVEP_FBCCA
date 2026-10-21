@@ -27,7 +27,7 @@ def run(session_path: str | Path, output_dir: str | Path) -> dict[str, Any]:
     with zipfile.ZipFile(session) as archive:
         members = sorted(archive.namelist())
         metadata = None
-        for name in ("metadata.json", "session.json", "progress.json"):
+        for name in ("info.json", "metadata.json", "session.json", "progress.json"):
             if name in members:
                 try:
                     metadata = json.loads(archive.read(name).decode("utf-8"))

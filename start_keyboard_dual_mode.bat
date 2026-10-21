@@ -7,18 +7,18 @@ set "PYTHONUNBUFFERED=1"
 set "PYTHONDONTWRITEBYTECODE=1"
 set "PYTHONPATH=%CD%\src;%PYTHONPATH%"
 if exist ".venv\Scripts\python.exe" (
-    ".venv\Scripts\python.exe" -m ssvep_fbcca --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 %*
+    ".venv\Scripts\python.exe" -m ssvep_fbcca --config "config\default.toml" --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 --fullscreen %*
 ) else (
     where py >nul 2>nul
     if not errorlevel 1 (
         py -3.10 -c "import sys" >nul 2>nul
         if not errorlevel 1 (
-            py -3.10 -m ssvep_fbcca --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 %*
+            py -3.10 -m ssvep_fbcca --config "config\default.toml" --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 --fullscreen %*
         ) else (
-            py -3 -m ssvep_fbcca --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 %*
+            py -3 -m ssvep_fbcca --config "config\default.toml" --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 --fullscreen %*
         )
     ) else (
-        python -m ssvep_fbcca --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 %*
+        python -m ssvep_fbcca --config "config\default.toml" --fbcca-profile m3_5band --protocol standard_5s --response-delay 0.23 --fullscreen %*
     )
 )
 set "EXIT_CODE=%ERRORLEVEL%"

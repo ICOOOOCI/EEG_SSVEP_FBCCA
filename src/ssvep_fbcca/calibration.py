@@ -255,7 +255,8 @@ class PersonalCalibration:
 
             if path.suffix.lower() == ".zip":
                 with zipfile.ZipFile(path) as archive:
-                    member = path.stem + "_model.pkl"
+                    # 精简会话ZIP使用 model.pkl；旧版完整ZIP使用 <会话名>_model.pkl。
+                    member = "model.pkl" if "model.pkl" in archive.namelist() else path.stem + "_model.pkl"
                     with archive.open(member) as handle:
                         bundle = DataOnlyUnpickler(handle).load()
             else:
