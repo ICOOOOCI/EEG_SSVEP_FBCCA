@@ -8,7 +8,7 @@ deepseek_api_key_env = "DEEPSEEK_API_KEY"
 deepseek_timeout_s = 60.0
 # 系统提示词默认值见 config.py（面向 ALS/BCI 用户）；如需替换可在此填写单行字符串：
 # deepseek_system_prompt = "..."
-protocol = "standard_5s"
+protocol = "standard_3.6s"
 blocks = 3
 random_seed = 20260928
 cue_s = 2.0

@@ -372,8 +372,9 @@ def cli(argv=None) -> int:
     parser.add_argument("--response-delay", type=nonnegative_seconds, metavar="SECONDS",
                         help="从刺激软件事件到分析窗起点的延迟秒数，允许0；"
                              "此值不是实测设备延迟，默认0.23")
-    parser.add_argument("--protocol", choices=("standard_2s", "standard_5s", "paper_window_1p25s"),
-                        help="分析窗长：2秒、5秒或论文1.25秒；仅改变窗长，不复刻论文完整时序")
+    parser.add_argument("--protocol", choices=("standard_2s", "standard_3.6s", "standard_5s",
+                                               "paper_window_1p25s"),
+                        help="分析窗长：2秒、3.6秒、5秒或论文1.25秒；仅改变窗长，不复刻论文完整时序")
     parser.add_argument("--seed", type=int, help="提示目标随机种子；不同复测可使用不同非负整数")
     parser.add_argument("--participant", help="匿名受试者编号；加载个人模型时必填")
     parser.add_argument("--calibration", help="个人校准模型NPZ、完整模式2会话PKL或ZIP路径（受试者与配置须匹配）")

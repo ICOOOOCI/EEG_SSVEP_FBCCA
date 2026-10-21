@@ -202,7 +202,7 @@ class Config:
     @property
     def window_s(self) -> float:
         """返回当前实验协议对应的 EEG 分析窗长度（秒）。"""
-        presets = {"standard_5s": 5.0, "standard_2s": 2.0, "debug_2s": 2.0,
+        presets = {"standard_5s": 5.0, "standard_3.6s": 3.6, "standard_2s": 2.0, "debug_2s": 2.0,
                    "paper_window_1p25s": 1.25, "paper_offline_5s": 5.0}
         if self.protocol not in presets:
             raise ValueError(f"未知 protocol: {self.protocol}; 可选 {tuple(presets)}")

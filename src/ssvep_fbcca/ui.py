@@ -90,7 +90,10 @@ CHATBOX_PAGE2_GRID = {
 # have at least one key between them; the number page is spaced further apart.
 CHATBOX_PAGE1_FREQUENCY_BY_SYMBOL = {
     "Q": 8.8, "W": 15.4, "E": 13.4, "R": 10.8, "T": 13.0,
-    "Y": 10.4, "U": 12.6, "I": 10.0, "O": 12.0, "P": 14.2,
+    # I moved off 10.0 Hz (2026-10-21 ChatBox collection): a narrow 10.0 Hz EEG component
+    # not locked to the flicker outscored the true key on 13.6% of other keys' trials at
+    # 5 s (grid median 2.0%); 10.2 Hz is the only free frequency that keeps the rules above.
+    "Y": 10.4, "U": 12.6, "I": 10.2, "O": 12.0, "P": 14.2,
     "A": 12.4, "S": 9.8, "D": 8.2, "F": 15.8, "G": 8.4,
     "H": 15.6, "J": 8.0, "K": 15.2, "L": 8.6,
     "Z": 14.8, "X": 11.6, "C": 14.0, "V": 11.8, "B": 13.8, "N": 11.0, "M": 13.2,
