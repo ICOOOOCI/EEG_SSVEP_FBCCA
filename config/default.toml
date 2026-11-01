@@ -1,7 +1,6 @@
 # 运行配置模板。命令行参数优先级高于此文件；未填写字段使用代码默认值。
 
 [session]
-session_mode = "cued"
 deepseek_model = "deepseek-chat"
 deepseek_api_url = "https://api.deepseek.com/chat/completions"
 deepseek_api_key_env = "DEEPSEEK_API_KEY"
@@ -9,9 +8,6 @@ deepseek_timeout_s = 60.0
 # 系统提示词默认值见 config.py（面向 ALS/BCI 用户）；如需替换可在此填写单行字符串：
 # deepseek_system_prompt = "..."
 window_s = 3.6
-blocks = 3
-random_seed = 20260928
-cue_s = 2.0
 response_delay_s = 0.23
 record_root = "session_records"
 
@@ -52,16 +48,12 @@ chatbox_feedback_s = 0.6
 chatbox_reading_chars_per_s = 14.0
 chatbox_reply_hold_s = 3.0
 # 输入法式单词预测：字母页顶部 3 个候选词键；DeepSeek 上下文预测；每轮前最多等待秒数。
-# 关闭 chatbox_predictions_enabled 可恢复为 30 个目标（不含候选键）。
+# 关闭 chatbox_predictions_enabled 可恢复为 31 个目标（不含候选键）。
 chatbox_predictions_enabled = true
 chatbox_llm_predictions = true
 chatbox_prediction_wait_s = 1.0
-# 不打算输入时的保护：用 [rejection] 阈值拦截"没在看键盘"的轮次（不输入任何字符）；
-# 连续 chatbox_auto_rest_after 轮被拦截就自动休息（只剩 WAKE 键闪烁），
-# 连续 chatbox_wake_rounds 轮注视 WAKE 恢复输入。数字页的 REST 键可主动休息。
+# 不打算输入时的保护：用 [rejection] 阈值拦截"没在看键盘"的轮次（不输入任何字符）。
 chatbox_rejection_enabled = true
-chatbox_auto_rest_after = 3
-chatbox_wake_rounds = 2
 
 [display]
 # true：全屏（默认）。false：可拖动缩放、可最大化的窗口，键盘随窗口大小重新排布（闪烁进行中不重排）。

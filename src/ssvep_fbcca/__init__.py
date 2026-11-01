@@ -32,15 +32,14 @@ from .events import EventMarkers, EventStamp, TrialLedger, TrialRecord
 from .quality import spectral_quality
 from .intent import alpha_power_ratio
 from .recording import (
-    ContinuousRecording, SessionRecorder, export_cued_sidecars,
-    package_cued_session, package_recording_files, tidy_session_archive, write_tidy_archive,
+    ContinuousRecording, SessionRecorder, package_recording_files, tidy_session_archive, write_tidy_archive,
 )
 from .analysis import (
-    frame_diagnostics, itr_bits_per_minute, make_luminance_table, make_schedule,
-    output_display_text, preflight_transport, print_free_summary, print_summary,
-    summarize_free_trials, summarize_trials,
+    frame_diagnostics, output_display_text, preflight_transport, print_free_summary,
+    summarize_free_trials,
 )
-from .ui import MainThreadGraphicsGC, PsychoPyKeyboard, calculate_keyboard_layout, keyboard_layout_info
+from .ui import MainThreadGraphicsGC, PsychoPyKeyboard
+from .wheelchair import WHEELCHAIR_COMMANDS, WheelchairPort
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 from .voice import Speaker, make_speaker
 from .app import cli, main, observe_lsl_timing, static_ui_self_test
@@ -58,12 +57,11 @@ __all__ = [
     "ContinuousLSL", "Epoch", "MNEStreamWindow",
     "decode_trial", "EventMarkers", "EventStamp", "TrialLedger", "TrialRecord", "spectral_quality",
     "alpha_power_ratio",
-    "ContinuousRecording", "SessionRecorder", "export_cued_sidecars", "package_cued_session",
+    "ContinuousRecording", "SessionRecorder",
     "package_recording_files", "tidy_session_archive", "write_tidy_archive", "frame_diagnostics",
-    "itr_bits_per_minute", "make_luminance_table",
-    "make_schedule", "output_display_text", "preflight_transport", "print_free_summary",
-    "print_summary", "summarize_free_trials", "summarize_trials", "MainThreadGraphicsGC",
-    "PsychoPyKeyboard", "calculate_keyboard_layout", "keyboard_layout_info", "cli", "main",
+    "output_display_text", "preflight_transport", "print_free_summary",
+    "summarize_free_trials", "MainThreadGraphicsGC",
+    "PsychoPyKeyboard", "cli", "main",
     "observe_lsl_timing", "static_ui_self_test", "ChatBackendError", "ChatMessage",
-    "DeepSeekChatBackend", "Speaker", "make_speaker",
+    "DeepSeekChatBackend", "Speaker", "make_speaker", "WHEELCHAIR_COMMANDS", "WheelchairPort",
 ]

@@ -26,25 +26,16 @@ def static_ui_self_test(cfg: Config, *, seconds: float = 5.0) -> dict:
               "scope": "静态布局、字体、窗口与软件刷新时序；不验证EEG、识别准确率或物理显示延迟"}
     try:
         app = PsychoPyKeyboard(replace(cfg), ContinuousLSL(cfg), None, TrialLedger(), static_only=True)
-        app.output_box.autoDraw = True
         app.output_text.autoDraw = True
-        app.output_caption.autoDraw = cfg.session_mode == "chatbox"
+        app.output_caption.autoDraw = True
+        app.win.color = CHAT_BG
         app.ledger.typed_text = "STATIC UI CHECK  ABC 123"
         app._sync_output_text(force=True)
-        app.cue_title.text = "STATIC UI CHECK - no EEG / no flicker"
-        app.footer.text = "40 keys + output + fixed cue | ESC: cancel | Closes automatically"
-        preview_page = int(os.environ.get("SSVEP_CHATBOX_PREVIEW_PAGE", "1"))
-        if cfg.session_mode == "chatbox":
-            preview_page = 2 if preview_page == 2 else 1
-            app.header.text = (f"MODE 3  /  {'LETTERS' if preview_page == 1 else 'NUMBERS'}  /  static preview")
-            app.footer.text = "Real window preview  ·  no EEG / no flicker  ·  ESC: cancel"
+        preview_page = 2 if os.environ.get("SSVEP_CHATBOX_PREVIEW_PAGE") == "2" else 1
         started = time.monotonic()
         while time.monotonic() - started < seconds:
             app._check_abort()
-            if cfg.session_mode == "chatbox":
-                app._draw_chatbox_keyboard(preview_page)
-            else:
-                app._draw_keys(1, show_outline=True)
+            app._draw_chatbox_keyboard(preview_page)
             app.win.flip()
         result.update(status="passed", exit_code=0, display_info=app.display_info)
     except AbortSession:
@@ -61,7 +52,7 @@ def static_ui_self_test(cfg: Config, *, seconds: float = 5.0) -> dict:
                 result.update(status="failed", exit_code=40)
                 print_fault(fault)
     if result["status"] == "passed":
-        print("静态界面自检通过：40键、文字、输出框、固定提示与静态绘制时序已检查。", flush=True)
+        print("静态界面自检通过：聊天键盘、文字、输入框与静态绘制时序已检查。", flush=True)
     return result
 
 def main(*, cfg: Optional[Config] = None) -> dict:
@@ -107,7 +98,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
     try:
         probe_save_directory(cfg.record_root)
         stage = "SAVE"
-        recorder = SessionRecorder(cfg, context={"mode_at_start": cfg.session_mode})
+        recorder = SessionRecorder(cfg, context={"mode_at_start": "chatbox"})
         collector.recorder = recorder
         print("\n[2/3] 连接EEG LSL并检查采样时间轴（请保持采集软件的LSL输出开启）…", flush=True)
         stage = "LSL_CONNECTION"
@@ -116,7 +107,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
         review = preflight_transport(cfg, collector)
         stage = "LSL_CONNECTION"
         markers = EventMarkers(cfg, collector.clock)
-        markers.mark(EventStamp("session_start", 0, details={"mode_at_start": cfg.session_mode}))
+        markers.mark(EventStamp("session_start", 0, details={"mode_at_start": "chatbox"}))
         stage = "INTERNAL"
         t = np.arange(sample_count(cfg.window_s, cfg.target_fs)) / cfg.target_fs
         warm = np.tile(np.sin(2*np.pi*10*t), (len(cfg.channel_indices), 1))
@@ -124,7 +115,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
         with threadpool_limits(limits=1):
             # 启动预热也经过 Decoder 端口，替换解码器时不会遗漏启动路径。
             collector.decoder.decode(warm, cfg.target_fs)
-        print("[3/3] Creating keyboard window; look at the left or right mode square for SSVEP selection…", flush=True)
+        print("[3/3] Creating keyboard window; look at the menu square to start…", flush=True)
         stage = "DISPLAY"
         app = PsychoPyKeyboard(cfg, collector, markers, ledger, recorder)
         reason = app.run()
@@ -154,9 +145,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
             except Exception as exc:
                 add_error(exc, "LSL_CONNECTION")
                 reason += f"; markers.close: {type(exc).__name__}: {exc}"
-        report = (summarize_free_trials(ledger.records, ledger)
-                  if cfg.session_mode == "chatbox"
-                  else summarize_trials(ledger.records, cfg.blocks * len(TARGETS)))
+        report = summarize_free_trials(ledger.records, ledger)
         session_artifact = None
         if recorder is not None:
             try:
@@ -185,7 +174,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
             add_error(recorder.continuous.error, "SAVE")
         if markers is not None and markers.error is not None and not any(f["code"] == "LSL_CONNECTION" for f in errors):
             add_error(markers.error, "LSL_CONNECTION")
-        LAST_SESSION = {"mode": cfg.session_mode, "config": cfg, "targets": TARGETS, "records": ledger.records,
+        LAST_SESSION = {"mode": "chatbox", "config": cfg, "targets": TARGETS, "records": ledger.records,
             "events": markers.events if markers else [], "acquisition_metadata": collector.metadata,
             "acquisition_review": review, "clock_updates": collector.clock_updates,
             "display_info": app.display_info if app else {}, "summary": report,
@@ -197,10 +186,7 @@ def main(*, cfg: Optional[Config] = None) -> dict:
             "export_artifacts": dict(recorder.export_artifacts) if recorder else {},
             "marker_error": str(markers.error) if markers and markers.error else None,
             "validation_scope": "software events only; physical screen/device delays unmeasured"}
-        if cfg.session_mode == "chatbox":
-            print_free_summary(report)
-        else:
-            print_summary(report, ledger)
+        print_free_summary(report)
         saved_path = session_artifact
         if saved_path is None and recorder is not None and recorder.session_dir.exists():
             saved_path = str(recorder.session_dir)
@@ -291,7 +277,7 @@ def nonnegative_seconds(value: str) -> float:
 def cli(argv=None) -> int:
     """Windows 与 macOS 共用的单文件命令行入口。"""
     configure_console()
-    parser = argparse.ArgumentParser(description="40目标 EEG 键盘")
+    parser = argparse.ArgumentParser(description="SSVEP EEG 聊天键盘")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--diagnose", action="store_true", help="检查依赖、liblsl 和保存目录")
     modes.add_argument("--check-lsl-timing", action="store_true",
@@ -325,13 +311,10 @@ def cli(argv=None) -> int:
     parser.add_argument("--response-delay", type=nonnegative_seconds, metavar="SECONDS",
                         help="从刺激软件事件到分析窗起点的延迟秒数，允许0；"
                              "此值不是实测设备延迟，默认0.23")
-    parser.add_argument("--seed", type=int, help="提示目标随机种子；不同复测可使用不同非负整数")
     parser.add_argument("--participant", help="匿名受试者编号，随会话配置保存")
     args = parser.parse_args(argv)
     if args.screen is not None and args.screen < 0:
         parser.error("screen 必须非负")
-    if args.seed is not None and args.seed < 0:
-        parser.error("seed 必须非负")
     if args.offline_output is not None and args.offline_session is None:
         parser.error("--offline-output 必须配合 --offline-session")
     if args.configure_api_key:
@@ -373,8 +356,6 @@ def cli(argv=None) -> int:
             cfg.deepseek_api_key_file = str(args.api_config.expanduser())
         if args.response_delay is not None:
             cfg.response_delay_s = args.response_delay
-        if args.seed is not None:
-            cfg.random_seed = args.seed
         if args.full_screen is not None:
             cfg.full_screen = args.full_screen
         if args.screen is not None:

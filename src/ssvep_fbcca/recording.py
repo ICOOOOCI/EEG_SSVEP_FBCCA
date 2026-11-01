@@ -395,8 +395,6 @@ class SessionRecorder:
             "EEG会话录制说明\n"
             "同名会话NPZ：原有逐试次EEG、处理网格、分类结果和完整试次元数据。\n"
             "continuous_eeg.npz：从首个采集回调到采集停止的所有LSL通道，包含预热、刺激及间歇。\n"
-            "模式2可用events.csv中的stimulus_onset从连续EEG截取每次闪烁开始后的数据；程序不自动估计延迟。\n"
-            "模式2闪烁覆盖5秒分析窗及最多300毫秒离线候选起点。\n"
             "source_data为通道×样本，按原流列顺序；selected_eeg_channel_indices给出分类通道。\n"
             "lsl_postprocessed_timestamps已由LSL校时、去抖和单调化，不是原始发布端或硬件时间戳。\n"
             "callback_lsl_clock是采集回调时读取的本机时钟，同一回调内重复，不是逐样本到达或采样时间。\n"
@@ -481,7 +479,6 @@ class SessionRecorder:
             "start": record.start, "end": record.end,
             "duration_s": max(0.0, record.end - record.start),
             "cue_onset": record.cue_onset,
-            "cue_progression": "automatic_timed" if record.mode == "cued" else None,
             "cue_confirmed_at": record.cue_confirmed_at, "fixation_onset": record.fixation_onset,
             "stimulus_onset": record.stimulus_onset,
             "stimulus_offset": record.stimulus_offset,
@@ -624,9 +621,6 @@ class SessionRecorder:
         try:
             timing_files = self._export_timing(payload)
             self._export_session(payload)
-            sidecars: dict[str, str] = {}
-            if self.cfg.session_mode == "cued":
-                sidecars = export_cued_sidecars(self.session_path)
             stem = self.session_dir.name
 
             def open_member(suffix: str) -> Any:
@@ -649,7 +643,7 @@ class SessionRecorder:
                  "array_prefix": f"trial_{record.trial_id:04d}_"}
         if self.continuous is not None and self.continuous.error is not None:
             return str(self.archive_path)
-        for path in {self.session_path, *timing_files.values(), *(Path(p) for p in sidecars.values())}:
+        for path in {self.session_path, *timing_files.values()}:
             path.unlink()
         if self.continuous is not None:
             for path in self.continuous.parts:
@@ -663,72 +657,6 @@ class SessionRecorder:
         self.manifest_path.unlink()
         self.session_dir.rmdir()
         return str(self.archive_path)
-
-def export_cued_sidecars(session_path: str | Path) -> dict[str, str]:
-    """为模式2会话NPZ导出质控JSON和事件CSV。
-
-    可对旧版单文件会话NPZ再次运行；原NPZ保持原位且不会被修改。
-    """
-    session_path = Path(session_path)
-    with np.load(session_path, allow_pickle=False) as archive:
-        session = json.loads(archive["metadata_json"].item())
-        if session.get("config", {}).get("session_mode") != "cued":
-            raise ValueError("只有模式2提示测试会话可生成质控文件")
-    hasher = hashlib.sha256()
-    with session_path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(chunk)
-    digest = hasher.hexdigest()
-    qc = _cued_quality_report(session, digest)
-    stem = session_path.stem
-    qc_path = session_path.with_name(stem + "_qc.json")
-    events_path = session_path.with_name(stem + "_events.csv")
-    SessionRecorder._atomic_json(qc_path, qc)
-
-    trial_by_id = {t["trial_id"]: t for t in session["trials"]}
-    fieldnames = ("timestamp_lsl", "event", "trial_id", "block_id", "target_id",
-                  "target_symbol", "target_frequency_hz", "status", "prediction",
-                  "prediction_symbol", "cca_prediction", "details_json")
-    temp = events_path.with_name(events_path.name + f".tmp-{uuid.uuid4().hex}")
-    with temp.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for event in session["events"]:
-            trial = trial_by_id.get(event["trial_id"], {})
-            target_id = event.get("target_id")
-            prediction = trial.get("prediction")
-            writer.writerow({
-                "timestamp_lsl": event.get("timestamp"),
-                "event": event["kind"],
-                "trial_id": event["trial_id"],
-                "block_id": trial.get("block_id"),
-                "target_id": target_id,
-                "target_symbol": TARGETS[target_id - 1].symbol if target_id else None,
-                "target_frequency_hz": TARGETS[target_id - 1].frequency_hz if target_id else None,
-                "status": trial.get("status"),
-                "prediction": prediction,
-                "prediction_symbol": TARGETS[prediction - 1].symbol if prediction else None,
-                "cca_prediction": trial.get("cca_prediction"),
-                "details_json": json.dumps(event.get("details") or {}, ensure_ascii=False,
-                                           separators=(",", ":")),
-            })
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(temp, events_path)
-    return {"qc": str(qc_path), "events": str(events_path)}
-
-def package_cued_session(session_path: str | Path, *,
-                         destination: Optional[str | Path] = None,
-                         remove_sources: bool = False,
-                         extra_sources: Sequence[Path] = ()) -> str:
-    """封装会话及其质控和事件文件，也可附加完整连续记录，核对后才可移除源文件。"""
-    session_path = Path(session_path)
-    stem = session_path.stem
-    sources = (session_path,
-               session_path.with_name(stem + "_qc.json"),
-               session_path.with_name(stem + "_events.csv"), *extra_sources)
-    archive_path = Path(destination) if destination is not None else session_path.with_suffix(".zip")
-    return package_recording_files(sources, archive_path, remove_sources=remove_sources)
 
 def package_recording_files(sources: Sequence[Path], archive_path: Path, *,
                             remove_sources: bool = False) -> str:
@@ -814,7 +742,7 @@ def _trial_summary(trial: dict) -> dict:
 
 
 def write_tidy_archive(open_member: Callable[[str], Any], stem: str, destination: str | Path) -> str:
-    """把会话导出文件整理为精简ZIP：连续原始EEG、试次EEG、事件、摘要及模式2模型。
+    """把会话导出文件整理为精简ZIP：连续原始EEG、试次EEG、事件和摘要。
 
     ``open_member(suffix)`` 返回 ``stem + suffix`` 的可读二进制句柄，不存在时返回 None；
     磁盘上的导出目录和旧版完整ZIP都可通过它读取。
@@ -896,7 +824,7 @@ def write_tidy_archive(open_member: Callable[[str], Any], stem: str, destination
         config = metadata.get("config") or session.get("config") or {}
         info = {
             "format": TIDY_ARCHIVE_FORMAT, "session_id": stem,
-            "created_utc": metadata.get("created_utc"), "mode": config.get("session_mode"),
+            "created_utc": metadata.get("created_utc"), "mode": config.get("session_mode", "chatbox"),
             "stop_reason": metadata.get("stop_reason"), "typed_text": metadata.get("typed_text"),
             "summary": metadata.get("summary"), "decoder_settings": metadata.get("decoder_settings"),
             "stream": {key: stream.get(key) for key in ("name", "type", "source_id", "channel_count", "nominal_fs")},

@@ -74,7 +74,6 @@ class Config:
         cfg.validate()
         return cfg
 
-    session_mode: str = "cued"
     # 模式三使用 DeepSeek Chat Completions；密钥只从环境变量读取。
     deepseek_model: str = "deepseek-chat"
     deepseek_api_url: str = "https://api.deepseek.com/chat/completions"
@@ -100,23 +99,12 @@ class Config:
     chatbox_predictions_enabled: bool = True    # 字母页顶部三个候选词键（关闭则为30个目标）
     chatbox_llm_predictions: bool = True        # 候选词同时参考 DeepSeek 上下文预测
     chatbox_prediction_wait_s: float = 1.0      # 每轮开始前最多等待 DeepSeek 候选的时间
-    # 不打算输入时的保护：复用 rejection_* 阈值拦截低置信轮次；连续若干轮被拦截则自动休息。
+    # 不打算输入时的保护：复用 rejection_* 阈值拦截低置信轮次。
     chatbox_rejection_enabled: bool = True
-    chatbox_auto_rest_after: int = 3            # 连续被拦截轮数后进入休息；0 = 不自动休息
-    chatbox_wake_rounds: int = 2                # 休息时需连续注视 WAKE 的轮数
     window_s: float = 3.6
-    blocks: int = 3
-    random_seed: int = 20260928
-    cue_s: float = 2.0
-    cued_settle_s: float = 0.5
     response_delay_s: float = 0.23
     blank_min_s: float = 0.5
     feedback_s: float = 0.5
-    cued_rest_every: int = 40
-    cued_rest_s: float = 30.0
-    block_rest_s: float = 180.0
-    cued_offline_max_delay_s: float = 0.30
-    max_consecutive_invalid: int = 3
 
     eeg_stream_name: Optional[str] = "obci_eeg1"
     eeg_stream_type: str = "EEG"
@@ -185,8 +173,6 @@ class Config:
     frame_short_factor: float = 0.5
     frame_rate_tolerance: float = 0.005
     marker_stream_name: str = "FBCCA_40_Keyboard_Events"
-    output_box_height_px: float = 72.0
-    output_box_margin_px: float = 24.0
 
     @property
     def channel_labels(self) -> tuple[str, ...]:
@@ -202,11 +188,6 @@ class Config:
     def stimulus_s(self) -> float:
         """返回响应延迟与分析窗之和，即单次刺激时长。"""
         return self.response_delay_s + self.window_s
-
-    @property
-    def cued_stimulus_s(self) -> float:
-        """返回模式2为离线延迟分析保留的完整闪烁时长。"""
-        return self.window_s + max(self.response_delay_s, self.cued_offline_max_delay_s)
 
     @property
     def filter_bands(self) -> tuple[tuple[float, float], ...]:
@@ -230,8 +211,6 @@ class Config:
         """验证所有配置项及跨字段约束，不合法时抛出 ``ValueError``。"""
         if not math.isfinite(self.window_s) or self.window_s <= 0:
             raise ValueError("window_s 必须为有限正数")
-        if self.session_mode not in ("cued", "chatbox"):
-            raise ValueError("session_mode 必须为 cued 或 chatbox")
         for name in ("deepseek_model", "deepseek_api_url", "deepseek_api_key_env"):
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
@@ -252,10 +231,6 @@ class Config:
                      "chatbox_rejection_enabled"):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"{name} 必须为 true 或 false")
-        for name, low in (("chatbox_auto_rest_after", 0), ("chatbox_wake_rounds", 1)):
-            value = getattr(self, name)
-            if isinstance(value, bool) or not isinstance(value, int) or value < low:
-                raise ValueError(f"{name} 必须为 >= {low} 的整数")
         if (isinstance(self.chatbox_voice_rate, bool) or not isinstance(self.chatbox_voice_rate, int)
                 or not -10 <= self.chatbox_voice_rate <= 10):
             raise ValueError("chatbox_voice_rate 必须为 -10 到 10 的整数")
@@ -277,13 +252,11 @@ class Config:
             raise ValueError("timestamp_max_discontinuity_s 必须大于持续偏移门限")
         if not 0 < self.timestamp_slew_rate_s_per_s < .1:
             raise ValueError("时间轴微调速率必须在0和0.1之间")
-        for name in ("blocks", "n_harmonics", "min_valid_channels", "max_consecutive_invalid",
-                     "cued_rest_every"):
+        for name in ("n_harmonics", "min_valid_channels"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise ValueError(f"{name} 必须是正整数")
-        for name in ("cue_s", "cued_settle_s", "response_delay_s", "blank_min_s", "feedback_s",
-                     "cued_rest_s", "block_rest_s", "cued_offline_max_delay_s"):
+        for name in ("response_delay_s", "blank_min_s", "feedback_s"):
             if not math.isfinite(getattr(self, name)) or getattr(self, name) < 0:
                 raise ValueError(f"{name} 必须非负且有限")
         for name in ("connect_timeout_s", "startup_timeout_s", "warmup_s", "data_wait_timeout_s",
@@ -367,7 +340,7 @@ class Config:
                 raise ValueError(f"已知发布端低通小于{band_high:g} Hz，不能使用当前频带")
 
 CONFIG = Config(
-    # 2026-10-19 5秒数据离线校准；只作用于 chatbox 模式，cued 模式不调用拒识门控。
+    # 2026-10-19 5秒数据离线校准；用于聊天键盘的拒识门控。
     rejection_enabled=True,
     rejection_min_score=0.25934562367893293,
     rejection_min_margin=0.0,

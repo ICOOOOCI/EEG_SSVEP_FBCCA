@@ -52,144 +52,6 @@ def frame_diagnostics(flip_times: Sequence[float], refresh_hz: float,
             "hard_invalid": hard_invalid,
             "refresh_hz": refresh_hz}
 
-def make_schedule(blocks: int, seed: int) -> list[tuple[int, int]]:
-    """按随机种子为每个区组生成一次覆盖全部目标的顺序。"""
-    if not isinstance(blocks, int) or isinstance(blocks, bool) or blocks < 1:
-        raise ValueError("blocks必须是正整数")
-    rng = np.random.default_rng(seed)
-    return [(b + 1, int(class_id)) for b in range(blocks)
-            for class_id in rng.permutation(np.arange(1, len(TARGETS) + 1))]
-
-def make_luminance_table(refresh_hz: float, duration_s: float) -> np.ndarray:
-    """预计算所有目标在每个显示帧上的正弦亮度值。"""
-    if not np.isfinite(refresh_hz) or refresh_hz <= 2 * BENCHMARK_FREQUENCIES_HZ.max():
-        raise ValueError("刷新率无法支持当前最高刺激频率")
-    if not np.isfinite(duration_s) or duration_s <= 0:
-        raise ValueError("刺激时长必须为正")
-    frames = max(1, math.ceil(duration_s * refresh_hz) + 1)
-    t = np.arange(frames)[:, None] / refresh_hz
-    phases = np.array([target.phase_rad for target in TARGETS])[None, :]
-    return .5 * (1 + np.sin(2 * np.pi * t * BENCHMARK_FREQUENCIES_HZ[None, :] + phases))
-
-def itr_bits_per_minute(p: float, seconds_per_selection: float, n: int = 40) -> float:
-    """均匀先验/对称错误模型的ITR估计；低于机会水平记0，不能当成实测互信息。"""
-    if not 0 <= p <= 1 or n < 2 or seconds_per_selection <= 0:
-        raise ValueError("ITR参数不合法")
-    if p <= 1 / n:
-        return 0.0
-    bits = math.log2(n)
-    if p < 1:
-        bits += p * math.log2(p) + (1 - p) * math.log2((1 - p) / (n - 1))
-    return max(0.0, bits * 60 / seconds_per_selection)
-
-def summarize_trials(records: Sequence[TrialRecord], planned: int) -> dict:
-    """保留有效试次准确率；另计每个块/目标首尝试，失败与拒识不能靠重试抹去。"""
-    if any(r.mode != "cued" or r.true_class is None for r in records):
-        raise ValueError("自由输入没有真实标签，不可计算提示测试准确率")
-    attempted = len(records)
-    valid = [r for r in records if r.status == "valid"]
-    n = len(TARGETS)
-    counts, valid_counts, invalid_counts = np.zeros(n, int), np.zeros(n, int), np.zeros(n, int)
-    fb_cm = np.zeros((n, n), int)
-    cca_cm = np.zeros((n, n), int)
-    online_cm = np.zeros((n, n), int)
-    online_decoder_counts: dict[str, int] = {}
-    for record in records:
-        t = record.true_class - 1
-        counts[t] += 1
-        if record.status == "valid":
-            if record.result is None:
-                raise ValueError("有效试次缺失结果")
-            valid_counts[t] += 1
-            fb_cm[t, record.result["fbcca_prediction"] - 1] += 1
-            cca_cm[t, record.result["cca_prediction"] - 1] += 1
-            online_cm[t, record.result["prediction"] - 1] += 1
-            decoder = record.result["decoder"]
-            online_decoder_counts[decoder] = online_decoder_counts.get(decoder, 0) + 1
-        else:
-            invalid_counts[t] += 1
-    active_s = sum(max(0.0, r.end - r.start) for r in records)
-    wall_s = max((r.end for r in records), default=0) - min((r.start for r in records), default=0)
-    started_targets = {(r.block_id, r.true_class) for r in records}
-    completed_targets = {(r.block_id, r.true_class) for r in valid}
-    first_records: dict[tuple[int, int], TrialRecord] = {}
-    for record in records:
-        key = (record.block_id, record.true_class)
-        previous = first_records.get(key)
-        if previous is None or record.trial_id < previous.trial_id:
-            first_records[key] = record
-    first_started = len(first_records)
-    first_attempt = {
-        "selection_rule": "lowest actual trial_id per (block_id, true_class)",
-        "started_targets": first_started,
-        "planned_targets": planned,
-        "coverage_rate": first_started / planned if planned > 0 else None,
-        "all_planned_targets_started": planned > 0 and first_started == planned,
-        "retry_attempts": attempted - first_started,
-        "trial_ids": sorted(r.trial_id for r in first_records.values()),
-        "nonvalid_first_attempts": sum(r.status != "valid" for r in first_records.values()),
-    }
-    for name, prediction_key in (("online", "prediction"),
-                                 ("fbcca", "fbcca_prediction"), ("cca", "cca_prediction")):
-        first_correct = sum(
-            r.status == "valid" and r.result is not None
-            and r.result[prediction_key] == r.true_class
-            for r in first_records.values())
-        first_attempt[name] = {
-            "correct": int(first_correct),
-            "accuracy_started": first_correct / first_started if first_started else None,
-            "success_planned": first_correct / planned if planned > 0 else None,
-        }
-    report = {"planned": planned, "attempted": attempted,
-        "not_started": max(0, planned - len(started_targets)),
-        "completed_targets": len(completed_targets),
-        "valid": len(valid), "rejected": sum(r.status == "rejected" for r in records),
-        "invalid_or_aborted": sum(r.status in ("invalid", "aborted") for r in records),
-        "active_selection_s": active_s, "wall_s_including_breaks": max(0, wall_s),
-        "mean_actual_selection_s": active_s / attempted if attempted else None,
-        "target_attempts": counts, "target_valid": valid_counts, "target_invalid": invalid_counts,
-        "fbcca_confusion": fb_cm, "cca_confusion": cca_cm,
-        "online_confusion": online_cm,
-        "online_decoder_counts": online_decoder_counts,
-        "first_attempt": first_attempt}
-    for name, cm in (("fbcca", fb_cm), ("cca", cca_cm), ("online", online_cm)):
-        correct = int(np.trace(cm))
-        success_all = correct / attempted if attempted else None
-        report[name] = {"correct": correct, "accuracy_valid": correct / len(valid) if valid else None,
-            "success_all_attempted": success_all,
-            "itr_conservative_actual_bpm": itr_bits_per_minute(success_all, active_s / attempted, n)
-                if attempted and active_s > 0 else None,
-            "itr_conservative_wall_bpm": itr_bits_per_minute(success_all, wall_s / attempted, n)
-                if attempted and wall_s > 0 else None}
-    return report
-
-def _pct(value: Optional[float]) -> str:
-    """将可选比例格式化为百分比或 ``N/A``。"""
-    return "N/A" if value is None else f"{100 * value:.2f}%"
-
-def _brief_reason(reason: str, limit: int = 160) -> str:
-    """压缩空白并截短过长的单行原因文本。"""
-    message = " ".join(reason.split())
-    return message if len(message) <= limit else message[:limit - 1] + "…"
-
-def print_summary(report: dict, ledger: TrialLedger) -> None:
-    """输出提示测试的首尝试覆盖率和各解码器准确率摘要。"""
-    first = report["first_attempt"]
-    coverage_note = ("已覆盖全部计划目标" if first["all_planned_targets_started"]
-                     else "尚未覆盖全部计划目标；不能作为完整一场验收")
-    print(f"首尝试覆盖 {first['started_targets']}/{first['planned_targets']} "
-          f"({_pct(first['coverage_rate'])}) | 重试 {first['retry_attempts']} 次 | {coverage_note}")
-    for name, label in (("online", "实际在线"), ("fbcca", "基础FBCCA"), ("cca", "标准CCA")):
-        metric = first[name]
-        print(f"首尝试{label}：已开始目标 {metric['correct']}/{first['started_targets']} "
-              f"({_pct(metric['accuracy_started'])})；按全部计划 "
-              f"{metric['correct']}/{first['planned_targets']} "
-              f"({_pct(metric['success_planned'])})；无效/中止/拒识均计失败")
-    print(f"取得有效结果的目标{report['completed_targets']} | 有效试次{report['valid']} | "
-          f"基础FBCCA有效试次准确率 {_pct(report['fbcca']['accuracy_valid'])} | "
-          f"标准CCA有效试次准确率 {_pct(report['cca']['accuracy_valid'])} | "
-          f"实际在线算法有效试次准确率 {_pct(report['online']['accuracy_valid'])}")
-
 def summarize_free_trials(records: Sequence[TrialRecord], ledger: TrialLedger) -> dict:
     """自由输入只报告操作记录；不虚构正确率、混淆矩阵或ITR。"""
     if any(r.mode != "free" or r.true_class is not None for r in records):
@@ -214,9 +76,9 @@ def output_display_text(text: str, max_chars: int) -> str:
     """仅裁剪显示尾部，不删减真正的输入字符串；静态|标记插入位置。"""
     if max_chars < 12:
         raise ValueError("输出显示区域过短")
-    tail_capacity = max_chars - len("OUTPUT: ") - 1
+    tail_capacity = max_chars - 1
     visible = text if len(text) <= tail_capacity else "..." + text[-(tail_capacity - 3):]
-    return "OUTPUT: " + visible + "|"
+    return visible + "|"
 
 def _canonical_unit(value: str) -> str:
     """将常见电压单位写法规范为 ``uV``、``mV`` 或 ``V``。"""

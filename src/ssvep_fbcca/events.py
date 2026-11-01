@@ -96,7 +96,7 @@ class TrialRecord:
     frame_diagnostics: dict = field(default_factory=dict)
     result: Optional[dict] = None
     text_applied: bool = False
-    mode: str = "cued"
+    mode: str = "free"
     requested_window_start: Optional[float] = None
     requested_window_end: Optional[float] = None
     actual_stimulus_s: Optional[float] = None
@@ -134,9 +134,6 @@ class TrialLedger:
         if record.mode == "free":
             if record.true_class is not None:
                 raise ValueError("自由输入没有真实目标，true_class必须为None")
-        elif record.mode == "cued":
-            if record.true_class is None or not 1 <= record.true_class <= len(TARGETS):
-                raise ValueError("提示测试的真实类别超出范围")
         else:
             raise ValueError("未知输入模式")
         if record.status == "valid":
