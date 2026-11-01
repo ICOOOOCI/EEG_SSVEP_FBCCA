@@ -6,8 +6,6 @@ export PYTHONUTF8=1 PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$SCRIPT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
 DEFAULT_ARGS=(
     --config "$SCRIPT_DIR/config/default.toml"
-    --fbcca-profile m3_5band
-    --protocol standard_3.6s
     --response-delay 0.23
     --fullscreen
 )

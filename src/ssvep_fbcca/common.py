@@ -184,8 +184,6 @@ class DegenerateSignalError(ValueError):
 class AbortSession(RuntimeError):
     """用户取消或急停。"""
 
-class PauseSelection(RuntimeError):
-    """自由输入暂停：立即停止闪烁，取消尚未提交的选择；不关闭EEG采集。"""
 
 
 

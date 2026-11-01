@@ -11,23 +11,22 @@ import os as _os
 _os.environ.setdefault("LSLAPICFG", _os.path.join(_os.path.dirname(__file__), "data", "lsl_api.cfg"))
 
 from .common import (
-    AbortSession, DegenerateSignalError, InvalidTrial, PauseSelection,
+    AbortSession, DegenerateSignalError, InvalidTrial,
     RuntimeFault, check_environment, configure_console, fault_record,
     print_fault, probe_save_directory, write_diagnostic,
 )
 from .config import (
     BENCHMARK_FREQUENCIES_HZ, CONFIG, DEFAULT_WINDOW_S, FREQUENCIES_HZ_BY_ROW,
-    KEY_ROWS, LINE_ROBUST_BANDS, M3_5_BANDS, M3_BANDS, N_HARMONICS, TARGETS,
-    TARGET_FS, Config, Target, configure_fbcca_profile,
+    KEY_ROWS, M3_5_BANDS, N_HARMONICS, TARGETS,
+    TARGET_FS, Config, Target,
 )
 from .interfaces import Decoder, EegSource, EventSink, TrialSink
 from .signal import (
-    NotchContext, apply_history_notch, assess_signal_quality, cca_correlation,
+    assess_signal_quality, cca_correlation,
     classify_eeg_window, fbcca_fusion, generate_reference_signals,
     mains_noise_diagnostics, preprocess_lsl_window, sample_count,
 )
 from .decoding import FbccaDecoder
-from .calibration import PersonalCalibration, calibration_settings
 from .acquisition import ContinuousLSL, Epoch, MNEStreamWindow, decode_trial
 from .events import EventMarkers, EventStamp, TrialLedger, TrialRecord
 from .quality import spectral_quality
@@ -44,20 +43,19 @@ from .analysis import (
 from .ui import MainThreadGraphicsGC, PsychoPyKeyboard, calculate_keyboard_layout, keyboard_layout_info
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 from .voice import Speaker, make_speaker
-from .wheelchair import DEFAULT_DIRECTION_BY_CLASS, WheelchairBridgeClient, WheelchairBridgeError
 from .app import cli, main, observe_lsl_timing, static_ui_self_test
 
 __all__ = [
-    "AbortSession", "DegenerateSignalError", "InvalidTrial", "PauseSelection",
+    "AbortSession", "DegenerateSignalError", "InvalidTrial",
     "RuntimeFault", "check_environment", "configure_console", "fault_record",
     "print_fault", "probe_save_directory", "write_diagnostic", "Config", "CONFIG",
     "Target", "TARGETS", "KEY_ROWS", "FREQUENCIES_HZ_BY_ROW", "BENCHMARK_FREQUENCIES_HZ",
-    "DEFAULT_WINDOW_S", "TARGET_FS", "N_HARMONICS", "M3_BANDS", "M3_5_BANDS",
-    "LINE_ROBUST_BANDS", "configure_fbcca_profile", "Decoder", "EegSource", "EventSink",
-    "TrialSink", "NotchContext", "apply_history_notch", "assess_signal_quality",
+    "DEFAULT_WINDOW_S", "TARGET_FS", "N_HARMONICS", "M3_5_BANDS",
+    "Decoder", "EegSource", "EventSink",
+    "TrialSink", "assess_signal_quality",
     "cca_correlation", "classify_eeg_window", "fbcca_fusion", "generate_reference_signals",
     "mains_noise_diagnostics", "preprocess_lsl_window", "sample_count", "FbccaDecoder",
-    "PersonalCalibration", "calibration_settings", "ContinuousLSL", "Epoch", "MNEStreamWindow",
+    "ContinuousLSL", "Epoch", "MNEStreamWindow",
     "decode_trial", "EventMarkers", "EventStamp", "TrialLedger", "TrialRecord", "spectral_quality",
     "alpha_power_ratio",
     "ContinuousRecording", "SessionRecorder", "export_cued_sidecars", "package_cued_session",
@@ -68,5 +66,4 @@ __all__ = [
     "PsychoPyKeyboard", "calculate_keyboard_layout", "keyboard_layout_info", "cli", "main",
     "observe_lsl_timing", "static_ui_self_test", "ChatBackendError", "ChatMessage",
     "DeepSeekChatBackend", "Speaker", "make_speaker",
-    "DEFAULT_DIRECTION_BY_CLASS", "WheelchairBridgeClient", "WheelchairBridgeError",
 ]

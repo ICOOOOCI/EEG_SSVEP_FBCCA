@@ -93,16 +93,10 @@ def summarize_trials(records: Sequence[TrialRecord], planned: int) -> dict:
     fb_cm = np.zeros((n, n), int)
     cca_cm = np.zeros((n, n), int)
     online_cm = np.zeros((n, n), int)
-    calibration_fallback_count = 0
-    calibration_fallback_valid_count = 0
     online_decoder_counts: dict[str, int] = {}
     for record in records:
         t = record.true_class - 1
         counts[t] += 1
-        if record.result is not None and record.result.get("calibration_fallback"):
-            calibration_fallback_count += 1
-            if record.status == "valid":
-                calibration_fallback_valid_count += 1
         if record.status == "valid":
             if record.result is None:
                 raise ValueError("有效试次缺失结果")
@@ -157,8 +151,6 @@ def summarize_trials(records: Sequence[TrialRecord], planned: int) -> dict:
         "fbcca_confusion": fb_cm, "cca_confusion": cca_cm,
         "online_confusion": online_cm,
         "online_decoder_counts": online_decoder_counts,
-        "calibration_fallback_count": calibration_fallback_count,
-        "calibration_fallback_valid_count": calibration_fallback_valid_count,
         "first_attempt": first_attempt}
     for name, cm in (("fbcca", fb_cm), ("cca", cca_cm), ("online", online_cm)):
         correct = int(np.trace(cm))
@@ -196,9 +188,7 @@ def print_summary(report: dict, ledger: TrialLedger) -> None:
     print(f"取得有效结果的目标{report['completed_targets']} | 有效试次{report['valid']} | "
           f"基础FBCCA有效试次准确率 {_pct(report['fbcca']['accuracy_valid'])} | "
           f"标准CCA有效试次准确率 {_pct(report['cca']['accuracy_valid'])} | "
-          f"实际在线算法有效试次准确率 {_pct(report['online']['accuracy_valid'])} | "
-          f"个人模型回退{report['calibration_fallback_count']}次"
-          f"（其中有效试次{report['calibration_fallback_valid_count']}次）")
+          f"实际在线算法有效试次准确率 {_pct(report['online']['accuracy_valid'])}")
 
 def summarize_free_trials(records: Sequence[TrialRecord], ledger: TrialLedger) -> dict:
     """自由输入只报告操作记录；不虚构正确率、混淆矩阵或ITR。"""
@@ -249,8 +239,6 @@ def preflight_transport(cfg: Config, collector: ContinuousLSL) -> dict[str, Any]
     if np.any(np.diff(local) <= 0):
         raise RuntimeFault("ACQUISITION", "启动LSL时间戳回退或重复")
     available_s = float(local[-1] - local[0])
-    if cfg.notch_mode == "history":
-        available_s -= cfg.notch_history_s + 0.1
     duration = math.floor(min(5.0, available_s) * fs) / fs
     end = float(local[-1])
     start = end - duration
@@ -262,8 +250,7 @@ def preflight_transport(cfg: Config, collector: ContinuousLSL) -> dict[str, Any]
     try:
         epoch = collector.buffer.epoch(
             start, duration, fs, cfg.max_gap_factor, cfg.rate_tolerance,
-            cfg.hard_gap_factor, cfg.hard_rate_tolerance, cfg.max_warning_gaps,
-            **({"notch_history_s": cfg.notch_history_s} if cfg.notch_mode == "history" else {}))
+            cfg.hard_gap_factor, cfg.hard_rate_tolerance, cfg.max_warning_gaps)
     except (InvalidTrial, ValueError) as exc:
         raise RuntimeFault("ACQUISITION", f"启动LSL数据不连续或包含无效样本：{exc}") from exc
     collector.check_health()
@@ -302,8 +289,6 @@ def preflight_transport(cfg: Config, collector: ContinuousLSL) -> dict[str, Any]
         "upstream_filter_description": cfg.upstream_filter_description,
         "upstream_lowpass_hz": cfg.upstream_lowpass_hz,
         "receiver_notch_hz": cfg.notch_hz,
-        "receiver_notch_mode": cfg.notch_mode,
-        "receiver_notch_history_s": cfg.notch_history_s if cfg.notch_mode == "history" else 0.0,
         "wiring_user_reviewed": False,
         "electrode_quality_checked_by_app": False,
         "startup_transport": {

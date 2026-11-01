@@ -5,7 +5,6 @@ from .config import *
 from .events import *
 from .events import _json_safe
 from .quality import *
-from .calibration import *
 
 
 
@@ -443,7 +442,6 @@ class SessionRecorder:
         record.artifact_refs = {"metadata": str(metadata_path), "arrays": str(arrays_path)}
         result = record.result or {}
         epoch = result.get("epoch")
-        notch_context_metadata = None
         arrays: dict[str, np.ndarray] = {
             "frame_flip_times": np.asarray(record.frame_flip_times, dtype=float),
             "frame_lsl_times": np.asarray(record.frame_lsl_times, dtype=float),
@@ -464,30 +462,7 @@ class SessionRecorder:
                 "uniform_data": np.asarray(epoch.data, dtype=float),
                 "uniform_timestamps": np.asarray(epoch.uniform_timestamps, dtype=float),
             })
-            notch_context = getattr(epoch, "notch_context", None)
-            if notch_context is not None:
-                arrays.update({
-                    "notch_context_data": np.asarray(notch_context.data, dtype=float),
-                    "notch_context_local_timestamps": np.asarray(notch_context.local_timestamps, dtype=float),
-                    "notch_context_uniform_timestamps": np.asarray(notch_context.uniform_timestamps, dtype=float),
-                    "notch_context_source_offset": np.asarray(notch_context.source_offset, dtype=np.int64),
-                    "notch_context_epoch_end": np.asarray(notch_context.epoch_end, dtype=float),
-                    "notch_context_requested_history_samples": np.asarray(
-                        notch_context.requested_history_samples, dtype=np.int64),
-                })
-                context_ts = arrays["notch_context_local_timestamps"]
-                notch_context_metadata = {
-                    "source_offset": int(notch_context.source_offset),
-                    "epoch_end": float(notch_context.epoch_end),
-                    "requested_history_samples": int(notch_context.requested_history_samples),
-                    "saved_samples": int(notch_context.data.shape[1]),
-                    "saved_start": float(context_ts[0]) if len(context_ts) else None,
-                    "saved_end": float(context_ts[-1]) if len(context_ts) else None,
-                    "data_scope": "Selected LSL channels before receiver filtering; past context and current epoch",
-                    "timestamp_semantics": "LSL-postprocessed local timestamps; not device hardware timestamps",
-                }
-        for key in ("scores", "correlations", "weights", "cca_scores", "fbcca_scores", "ecca_features",
-                    "history_notched_data"):
+        for key in ("scores", "correlations", "weights", "cca_scores", "fbcca_scores"):
             if result.get(key) is not None:
                 arrays[key] = np.asarray(result[key], dtype=float)
         self._atomic_npz(arrays_path, arrays)
@@ -517,17 +492,11 @@ class SessionRecorder:
             "frame_diagnostics": frame_diag,
             "prediction": result.get("prediction"),
             "decoder": result.get("decoder", "FBCCA"),
-            "calibration_id": result.get("calibration_id"),
-            "calibration_fallback": result.get("calibration_fallback"),
             "fbcca_prediction": result.get("fbcca_prediction"),
             "frequency_hz": result.get("frequency_hz"),
             "filter_bands_hz": result.get("filter_bands_hz"),
             "n_harmonics": result.get("n_harmonics"),
-            "line_regression_hz": result.get("line_regression_hz", self.cfg.line_regression_hz),
-            "notch_mode": getattr(self.cfg, "notch_mode", "epoch"),
-            "notch_history_s": getattr(self.cfg, "notch_history_s", 4.0),
             "notch_processing": result.get("notch_processing"),
-            "notch_context": notch_context_metadata,
             "rejection_diagnostics": result.get("rejection_diagnostics"),
             "cca_prediction": result.get("cca_prediction"),
             "cca_frequency_hz": result.get("cca_frequency_hz"),
@@ -586,12 +555,8 @@ class SessionRecorder:
                 metadata = {
                     **payload, "program": self.program, "session_id": stem,
                     "targets": _json_safe(TARGETS), "trials": trials,
-                    "algorithm": "FB-eCCA" if self.cfg.calibration_file else "FBCCA",
-                    "trained_model": self.manifest["context"].get("trained_model"),
-                    "data_scope": (
-                        "Recorded raw trial windows plus per-trial raw notch history; not a continuous session recording"
-                        if getattr(self.cfg, "notch_mode", "epoch") == "history" else
-                        "Recorded trial windows only; not a continuous session recording"),
+                    "algorithm": "FBCCA",
+                    "data_scope": "Recorded trial windows only; not a continuous session recording",
                     "array_layout": "channels x samples; each trial uses trial_NNNN_ prefixed keys",
                     "label_convention": "1-based true class; -1 means unknown (including free mode)",
                     "source_data_scope": "Selected LSL channels before receiver filtering; upstream processing may apply",
@@ -640,21 +605,12 @@ class SessionRecorder:
             "schema_version": self.schema_version,
             "manifest_file": self.manifest_path.name,
             "config": vars(self.cfg), "summary": summary,
-            "decoder_settings": {"filter_bank_profile": self.cfg.filter_bank_profile,
-                                 "filter_bands_hz": self.cfg.filter_bands,
+            "decoder_settings": {"filter_bands_hz": self.cfg.filter_bands,
                                  "n_harmonics": self.cfg.n_harmonics,
-                                 "line_regression_hz": self.cfg.line_regression_hz,
-                                 "notch_mode": getattr(self.cfg, "notch_mode", "epoch"),
-                                 "notch_history_s": getattr(self.cfg, "notch_history_s", 4.0),
                                  "notch_hz": self.cfg.notch_hz,
                                  "notch_Q": 30.0,
-                                 "notch_pipeline": (
-                                     "raw sample-order history through epoch end -> notch filtfilt -> "
-                                     "interpolation to epoch grid -> row normalization -> "
-                                     "epoch filter bank; no second epoch notch"
-                                     if getattr(self.cfg, "notch_mode", "epoch") == "history" else
-                                     "uniform raw epoch -> optional line regression -> row normalization -> "
-                                     "epoch notch filtfilt -> epoch filter bank")},
+                                 "notch_pipeline": ("uniform raw epoch -> row normalization -> "
+                                                    "epoch notch filtfilt -> epoch filter bank")},
             "events": events, "acquisition_metadata": acquisition_metadata,
             "acquisition_review": acquisition_review, "clock_updates": clock_updates,
             "display_info": display_info, "typed_text": typed_text,
@@ -709,7 +665,7 @@ class SessionRecorder:
         return str(self.archive_path)
 
 def export_cued_sidecars(session_path: str | Path) -> dict[str, str]:
-    """为模式2会话NPZ导出质控JSON、可加载模型PKL和事件CSV。
+    """为模式2会话NPZ导出质控JSON和事件CSV。
 
     可对旧版单文件会话NPZ再次运行；原NPZ保持原位且不会被修改。
     """
@@ -717,30 +673,17 @@ def export_cued_sidecars(session_path: str | Path) -> dict[str, str]:
     with np.load(session_path, allow_pickle=False) as archive:
         session = json.loads(archive["metadata_json"].item())
         if session.get("config", {}).get("session_mode") != "cued":
-            raise ValueError("只有模式2提示测试会话可生成质控和个人模型文件")
-        saved_config = dict(session["config"])
-        saved_config.pop("quick_entry_mode", None)
-        cfg = Config(**saved_config)
-        bundle = _cued_model_bundle(archive, session, cfg)
+            raise ValueError("只有模式2提示测试会话可生成质控文件")
     hasher = hashlib.sha256()
     with session_path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             hasher.update(chunk)
     digest = hasher.hexdigest()
-    bundle["source_npz_sha256"] = digest
-    qc = _cued_quality_report(session, bundle, digest)
+    qc = _cued_quality_report(session, digest)
     stem = session_path.stem
     qc_path = session_path.with_name(stem + "_qc.json")
-    model_path = session_path.with_name(stem + "_model.pkl")
     events_path = session_path.with_name(stem + "_events.csv")
     SessionRecorder._atomic_json(qc_path, qc)
-
-    temp = model_path.with_name(model_path.name + f".tmp-{uuid.uuid4().hex}")
-    with temp.open("wb") as handle:
-        pickle.dump(bundle, handle, protocol=5)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(temp, model_path)
 
     trial_by_id = {t["trial_id"]: t for t in session["trials"]}
     fieldnames = ("timestamp_lsl", "event", "trial_id", "block_id", "target_id",
@@ -772,18 +715,17 @@ def export_cued_sidecars(session_path: str | Path) -> dict[str, str]:
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(temp, events_path)
-    return {"qc": str(qc_path), "model": str(model_path), "events": str(events_path)}
+    return {"qc": str(qc_path), "events": str(events_path)}
 
 def package_cued_session(session_path: str | Path, *,
                          destination: Optional[str | Path] = None,
                          remove_sources: bool = False,
                          extra_sources: Sequence[Path] = ()) -> str:
-    """兼容旧四文件会话，也可附加完整连续记录，核对后才可移除源文件。"""
+    """封装会话及其质控和事件文件，也可附加完整连续记录，核对后才可移除源文件。"""
     session_path = Path(session_path)
     stem = session_path.stem
     sources = (session_path,
                session_path.with_name(stem + "_qc.json"),
-               session_path.with_name(stem + "_model.pkl"),
                session_path.with_name(stem + "_events.csv"), *extra_sources)
     archive_path = Path(destination) if destination is not None else session_path.with_suffix(".zip")
     return package_recording_files(sources, archive_path, remove_sources=remove_sources)
@@ -845,7 +787,6 @@ trials.npz       逐试次原始EEG窗口（仅参与分类的通道，未滤波
                  trial_NNNN_scores      各目标的FBCCA得分
 events.csv       事件时间线（提示、闪烁开始/结束、试次结束等）及对应目标和预测。
 info.json        会话摘要：模式、配置、准确率/ITR、通道、逐试次结果表。
-model.pkl        （仅模式2）个人校准模型，可用 --calibration-file 加载本ZIP。
 
 读取示例（Python）：
     import numpy as np, zipfile
@@ -966,19 +907,12 @@ def write_tidy_archive(open_member: Callable[[str], Any], stem: str, destination
             "recording": metadata.get("recording"),
             "quality": ({"presentation": qc.get("presentation_qc"), "signal": qc.get("signal_qc")}
                         if qc else None),
-            "model": qc.get("model") if qc else None,
             "program_version": (metadata.get("program") or {}).get("program_version"),
             "config": config, "trials": [_trial_summary(t) for t in trials],
         }
         SessionRecorder._atomic_json(staging / "info.json", info)
         (staging / "README.txt").write_text(_TIDY_README.format(session_id=stem), encoding="utf-8")
         members = ["README.txt", "info.json", "eeg_raw.npz", "trials.npz", "events.csv"]
-        model_handle = open_member("_model.pkl")
-        if model_handle is not None:
-            with model_handle, (staging / "model.pkl").open("wb") as out:
-                for chunk in iter(lambda: model_handle.read(1024 * 1024), b""):
-                    out.write(chunk)
-            members.append("model.pkl")
         try:
             with zipfile.ZipFile(temp, "w", compression=zipfile.ZIP_DEFLATED,
                                  compresslevel=6, allowZip64=True) as archive:

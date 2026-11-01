@@ -3,7 +3,6 @@ from __future__ import annotations
 from .common import *
 from .config import *
 from .signal import *
-from .calibration import *
 from .events import _json_safe
 
 
@@ -53,68 +52,7 @@ def _finite_median(values: Sequence[Any]) -> Optional[float]:
     finite = [float(v) for v in values if v is not None and math.isfinite(float(v))]
     return float(np.median(finite)) if finite else None
 
-def _cued_model_bundle(archive: Any, session: dict[str, Any], cfg: Config) -> dict[str, Any]:
-    """从本场有效且有真实标签的EEG窗训练个人模板；不虚构交叉验证结果。"""
-    trials = session["trials"]
-    valid = [t for t in trials if t["status"] == "valid" and t["true_class"] is not None
-             and f"trial_{t['trial_id']:04d}_uniform_data" in archive]
-    counts = np.bincount([t["true_class"] for t in valid], minlength=len(TARGETS) + 1)[1:]
-    missing = (np.flatnonzero(counts == 0) + 1).tolist()
-    bundle: dict[str, Any] = {
-        "format": "fbcca_keyboard_model_v1",
-        "session_id": session["session_id"],
-        "source_npz": session["session_id"] + ".npz",
-        "online_decoder": session["algorithm"],
-        "target_count": len(TARGETS),
-        "valid_trial_ids": [t["trial_id"] for t in valid],
-        "counts_by_class": counts.tolist(),
-        "missing_class_ids": missing,
-        "decoder_settings": calibration_settings(cfg),
-        "training_status": "incomplete" if missing else "trained",
-        "training_reason": (f"缺少{len(missing)}个类别的有效EEG窗" if missing else None),
-        "used_for_online_decoding": False,
-        "validation": "未对本场新训练的模板进行独立测试或留一验证",
-        "calibration": None,
-    }
-    if getattr(cfg, "notch_mode", "epoch") != "epoch":
-        bundle["training_status"] = "unsupported"
-        bundle["training_reason"] = (
-            "history 陷波本版仅支持无模板 FBCCA；个人模板训练尚未接入完整历史预处理，未训练模型")
-        bundle["decoder_settings"] = {
-            **bundle["decoder_settings"],
-            "notch_mode": getattr(cfg, "notch_mode", "epoch"),
-            "notch_history_s": getattr(cfg, "notch_history_s", 4.0),
-            "notch_Q": 30.0,
-        }
-        return bundle
-    if missing:
-        return bundle
-    training_cfg = replace(cfg, participant_id=cfg.participant_id or session["session_id"],
-                           calibration_file=None)
-    windows = [archive[f"trial_{t['trial_id']:04d}_uniform_data"] for t in valid]
-    try:
-        model = PersonalCalibration.fit(
-            windows, [t["true_class"] for t in valid],
-            [t.get("sampling_rate_hz") for t in valid], training_cfg,
-            sources=[{"session_id": session["session_id"],
-                      "trial_ids": bundle["valid_trial_ids"], "scope": "valid_cued_trials"}])
-    except (ValueError, DegenerateSignalError, np.linalg.LinAlgError) as exc:
-        bundle["training_status"] = "failed"
-        bundle["training_reason"] = f"{type(exc).__name__}: {exc}"
-        return bundle
-    bundle["calibration"] = {
-        "metadata": model.metadata,
-        "model_id": model.model_id,
-        "counts": model.counts.tolist(),
-        "templates_shape": list(model.templates.shape),
-        "templates_float64_le": model.templates.astype("<f8", copy=False).tobytes(),
-    }
-    bundle["model_id"] = model.model_id
-    bundle["participant_id"] = training_cfg.participant_id
-    return bundle
-
-def _cued_quality_report(session: dict[str, Any], bundle: dict[str, Any],
-                         npz_sha256: str) -> dict[str, Any]:
+def _cued_quality_report(session: dict[str, Any], npz_sha256: str) -> dict[str, Any]:
     """汇总提示测试的逐目标频谱、呈现和信号质量指标。"""
     trials = session["trials"]
     summaries = []
@@ -172,10 +110,6 @@ def _cued_quality_report(session: dict[str, Any], bundle: dict[str, Any],
         "online_decoder": session["algorithm"],
         "decoder_settings": session["decoder_settings"],
         "online_summary": session["summary"],
-        "model": {key: value for key, value in bundle.items()
-                  if key in ("training_status", "training_reason", "model_id",
-                             "participant_id", "counts_by_class", "missing_class_ids",
-                             "used_for_online_decoding", "validation")},
         "presentation_qc": {
             "trial_count_with_frame_diagnostics": sum(bool(f) for f in frame),
             "median_refresh_hz": _finite_median([f.get("refresh_hz") for f in frame]),

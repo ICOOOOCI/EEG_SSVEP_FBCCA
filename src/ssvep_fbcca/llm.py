@@ -23,7 +23,11 @@ class ChatBackendError(RuntimeError):
     """聊天请求失败或响应格式无效。"""
 
 
+# 项目内的 deepseek.json 会上传到 GitHub，仓库里只保存占位模板，用户可在本地填入自己的 key。
+# --configure-api-key 保存到用户目录；该文件不在项目内，不会被上传。
+PROJECT_API_KEY_FILE = Path(__file__).resolve().parents[2] / "config" / "deepseek.json"
 DEFAULT_API_KEY_FILE = Path("~/.config/ssvep_fbcca/deepseek.json").expanduser()
+API_KEY_PLACEHOLDER = "这里换成自己的 key"
 
 
 def _api_key_path(path: str | Path | None = None) -> Path:
@@ -33,13 +37,19 @@ def _api_key_path(path: str | Path | None = None) -> Path:
 
 
 def load_local_api_key(path: str | Path | None = None) -> str | None:
-    """从权限受限的 JSON 文件读取 API key；文件不存在时返回 ``None``。"""
+    """从 JSON 文件读取 API key；文件不存在或仍是占位模板时返回 ``None``。
+
+    未指定路径时先读项目内文件，再读用户目录。项目内文件经下载或解压后权限
+    会变，不检查权限；其他路径仍要求权限受限。
+    """
+    if not (path or os.getenv("DEEPSEEK_API_CONFIG")):
+        return load_local_api_key(PROJECT_API_KEY_FILE) or load_local_api_key(DEFAULT_API_KEY_FILE)
     source = _api_key_path(path)
     if not source.exists():
         return None
     if not source.is_file():
         raise ChatBackendError(f"DeepSeek API 配置路径不是文件：{source}")
-    if os.name == "posix":
+    if os.name == "posix" and source != PROJECT_API_KEY_FILE:
         mode = stat.S_IMODE(source.stat().st_mode)
         if mode & 0o077:
             raise ChatBackendError(
@@ -55,7 +65,7 @@ def load_local_api_key(path: str | Path | None = None) -> str | None:
         return None
     if not isinstance(value, str) or not value.strip():
         raise ChatBackendError(f"DeepSeek API 配置中的 api_key 不是非空字符串：{source}")
-    return value.strip()
+    return None if value.strip() == API_KEY_PLACEHOLDER else value.strip()
 
 
 def save_local_api_key(api_key: str, path: str | Path | None = None) -> Path:
@@ -147,7 +157,7 @@ class DeepSeekChatBackend:
 
     DeepSeek 使用标准的聊天消息格式，这里直接使用 Python 标准库发起
     请求，避免为键盘运行环境额外安装 SDK。API key 优先从显式参数或环境变量
-    读取；没有环境变量时从用户目录的 JSON 配置文件读取，不写入会话记录。
+    读取；没有环境变量时从项目内或用户目录的 JSON 配置文件读取，不写入会话记录。
     """
 
     def __init__(
@@ -164,13 +174,12 @@ class DeepSeekChatBackend:
         if not isinstance(timeout, (int, float)) or timeout <= 0:
             raise ValueError("timeout 必须为正数")
         self.api_key_env = api_key_env.strip() or "DEEPSEEK_API_KEY"
-        self.api_key_file = _api_key_path(api_key_file)
         self.api_key = (api_key or os.getenv(self.api_key_env)
-                        or load_local_api_key(self.api_key_file))
+                        or load_local_api_key(api_key_file))
         if not isinstance(self.api_key, str) or not self.api_key.strip():
             raise ChatBackendError(
-                f"未找到 DeepSeek API key；请设置环境变量 {self.api_key_env}，"
-                f"或先运行 --configure-api-key（配置文件：{self.api_key_file}）"
+                f"未找到 DeepSeek API key；请在 {PROJECT_API_KEY_FILE} 填入自己的 key，"
+                f"或运行 --configure-api-key，或设置环境变量 {self.api_key_env}"
             )
         self.model = (model or os.getenv("DEEPSEEK_MODEL", "deepseek-chat")).strip()
         self.endpoint = (endpoint or os.getenv(
@@ -227,5 +236,5 @@ class DeepSeekChatBackend:
 
 
 __all__ = ["ChatBackendError", "ChatMessage", "DeepSeekChatBackend",
-           "DEFAULT_API_KEY_FILE", "load_local_api_key", "save_local_api_key",
+           "DEFAULT_API_KEY_FILE", "PROJECT_API_KEY_FILE", "load_local_api_key", "save_local_api_key",
            "configure_local_api_key"]

@@ -14,7 +14,7 @@ import threading
 class Decoder(Protocol):
     """EEG 窗口解码器端口。"""
 
-    def decode(self, data: Any, fs: float, *, notch_context: Any = None) -> dict[str, Any]:
+    def decode(self, data: Any, fs: float) -> dict[str, Any]:
         ...
 
 

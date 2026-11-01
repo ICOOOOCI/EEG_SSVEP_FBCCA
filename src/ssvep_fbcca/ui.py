@@ -14,7 +14,6 @@ from .intent import *
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 from .voice import Speaker, make_speaker
 from .predict import WordPredictor, apply_suggestion, llm_suggestions, merge_suggestions
-from .wheelchair import DEFAULT_DIRECTION_BY_CLASS, WheelchairBridgeClient
 
 
 
@@ -31,10 +30,10 @@ LAYOUT_REFERENCE_SIZE = (1470.0, 960.0)
 MIN_WINDOW_SIZE = (800, 520)
 RESIZE_SETTLE_S = 0.25
 
-# Mode selection uses three separated frequencies. The decoder only compares
-# these three references, using the same FBCCA settings as the main keyboard.
-MODE_FREQUENCIES_HZ = (8.0, 10.0, 12.0)
-MODE_NAMES = ("MODE 1", "MODE 2", "MODE 3")
+# Mode selection uses two separated frequencies. The decoder only compares
+# these two references, using the same FBCCA settings as the main keyboard.
+MODE_FREQUENCIES_HZ = (10.0, 12.0)
+MODE_NAMES = ("MODE 2", "MODE 3")
 # Mode menu follows the supplied reference: a nearly black blue-gray canvas,
 # pale lavender selection tiles, and high-contrast black labels.
 MODE_MENU_BG = (-.88, -.84, -.78)
@@ -56,7 +55,7 @@ CHAT_KEY_BORDER = (-.98, -.97, -.94)
 CHAT_MUTED = (.64, .62, .66)
 CHAT_WARNING = (1.0, .76, -.30)
 
-# ChatBox has its own two-page keyboard. Mode 1 and mode 2 continue to use
+# ChatBox has its own two-page keyboard. Mode 2 continues to use
 # TARGETS and the original 40-key layout above this page-specific layer.
 # SUGGEST1-3 are the word-prediction keys (candidate bar above Q-P). They are
 # appended so the letter keys keep their class order, and are left out entirely
@@ -382,14 +381,12 @@ class PsychoPyKeyboard:
 
     def __init__(self, cfg: Config, collector: EegSource, markers: Optional[EventSink],
                  ledger: TrialLedger, recorder: Optional[TrialSink] = None,
-                 *, static_only: bool = False,
-                 wheelchair: Optional[WheelchairBridgeClient] = None):
+                 *, static_only: bool = False):
         """绑定会话组件并在主线程创建 PsychoPy 窗口和视觉刺激。"""
         MainThreadGraphicsGC._check_thread()
         from psychopy import visual, event, logging
         self.cfg, self.collector, self.markers, self.ledger = cfg, collector, markers, ledger
         self.recorder = recorder
-        self.wheelchair = wheelchair
         self.static_only = static_only
         self.fatal_fault: Optional[dict] = None
         self.trial_faults: list[dict] = []
@@ -403,7 +400,6 @@ class PsychoPyKeyboard:
                                                       thread_name_prefix="DeepSeek-predict")
         self.win: Any = None
         self.display_info: dict = {}
-        self._pause_enabled = False
         self._rest_beep: Any = None
         self._active_decode_cancel: Optional[threading.Event] = None
         self._decode_future: Any = None
@@ -526,31 +522,29 @@ class PsychoPyKeyboard:
             color="white", autoLog=False)
         mode_square_size = min(300*ui_scale, width*.17, height*.28)
         mode_gap = max(48*ui_scale, mode_square_size*.82)
-        mode_total_width = 3 * mode_square_size + 2 * mode_gap
+        mode_total_width = 2 * mode_square_size + mode_gap
         if mode_total_width > width*.86:
             mode_square_size *= width*.86 / mode_total_width
             mode_gap = max(36*ui_scale, mode_square_size*.82)
         mode_y = 0.0
-        mode_x = mode_square_size + mode_gap
-        self.mode_positions = np.asarray(((-mode_x, mode_y), (0.0, mode_y),
-                                          (mode_x, mode_y)), dtype=float)
+        mode_x = (mode_square_size + mode_gap) / 2
+        self.mode_positions = np.asarray(((-mode_x, mode_y), (mode_x, mode_y)), dtype=float)
         self.mode_key_size = mode_square_size
-        self.mode_static_colors = np.tile(MODE_TILE, (3, 1))
-        self.mode_squares = visual.ElementArrayStim(self.win, nElements=3, units="pix",
+        self.mode_static_colors = np.tile(MODE_TILE, (2, 1))
+        self.mode_squares = visual.ElementArrayStim(self.win, nElements=2, units="pix",
             xys=self.mode_positions, sizes=(mode_square_size, mode_square_size),
             elementTex=None, elementMask=None, colors=self.mode_static_colors,
             colorSpace="rgb", autoLog=False)
-        self.mode_borders = visual.ElementArrayStim(self.win, nElements=3, units="pix",
+        self.mode_borders = visual.ElementArrayStim(self.win, nElements=2, units="pix",
             xys=self.mode_positions, sizes=(mode_square_size + 4*ui_scale,
                                             mode_square_size + 4*ui_scale), elementTex=None,
-            elementMask=None, colors=np.tile(MODE_TILE_BORDER, (3, 1)),
+            elementMask=None, colors=np.tile(MODE_TILE_BORDER, (2, 1)),
             colorSpace="rgb", autoLog=False)
         self.mode_outline = visual.Rect(self.win, width=mode_square_size + 18*ui_scale,
             height=mode_square_size + 18*ui_scale, fillColor=None, lineColor="#FFE45C",
             lineWidth=max(1, 3*ui_scale), units="pix", autoLog=False)
         self.mode_labels = []
-        mode_label_text = ("MODE 1\nFREE INPUT", "MODE 2\nCUED TEST",
-                           "MODE 3\nDEEPSEEK\nCHATBOX")
+        mode_label_text = ("MODE 2\nCUED TEST", "MODE 3\nDEEPSEEK\nCHATBOX")
         for index, label_text in enumerate(mode_label_text):
             self.mode_labels.append(visual.TextStim(
                 self.win, text=label_text, pos=self.mode_positions[index],
@@ -580,8 +574,6 @@ class PsychoPyKeyboard:
         self._processing_key_size = processing_key_size
         self._processing_cued_positions = ((0, -height*.005), (0, -height*.075),
                                           (0, -height*.135))
-        self._processing_free_positions = ((0, height*.055), (0, -height*.015),
-                                          (0, -height*.075))
         self.processing_key = visual.Rect(self.win, width=processing_key_size,
             height=processing_key_size, pos=(0, height*.10),
             fillColor=(-.20, -.24, -.10), lineColor="#BEB8C5",
@@ -617,12 +609,6 @@ class PsychoPyKeyboard:
         self.result_warning = visual.TextStim(self.win, text="",
             pos=(0, -height*.29), height=16*ui_scale, wrapWidth=width*.85,
             font=menu_font, color="#FFCB52", autoLog=False)
-        self.pause_title = visual.TextStim(self.win, text="Paused",
-            pos=(0, height*.015), height=56*ui_scale,
-            font=menu_font, color="white", autoLog=False)
-        self.pause_subtitle = visual.TextStim(self.win, text="",
-            pos=(0, -height*.055), height=20*ui_scale, wrapWidth=width*.85,
-            font=menu_font, color="white", autoLog=False)
         self.rest_title = visual.TextStim(self.win, text="Rest your eyes",
             pos=(0, height*.10), height=44*ui_scale,
             font=menu_font, color="white", autoLog=False)
@@ -674,7 +660,7 @@ class PsychoPyKeyboard:
             pos=(-chat_left, height * .468), height=15*ui_scale, font=menu_font,
             color="#FFE45C", alignText="right", anchorHoriz="right", autoLog=False)
         # Shared stims (draft box, header, footer) move between two layouts: the
-        # 40-key screen (modes 1-2, mode menu) and the ChatBox split screen (mode 3).
+        # 40-key screen (mode 2, mode menu) and the ChatBox split screen (mode 3).
         # _apply_screen_layout switches them whenever a mode is entered.
         draft_h = height * .05
         draft_y = chat_bottom - height * .012 - draft_h / 2
@@ -774,7 +760,7 @@ class PsychoPyKeyboard:
             freqs = np.asarray(frequencies, dtype=float)[None, :]
             luminance = .5 * (1 + np.sin(2 * np.pi * t * freqs))
             self.chat_rgb_frames[page] = np.repeat((2 * luminance - 1)[:, :, None], 3, axis=2)
-        durations = {"free": cfg.stimulus_s, "cued": cfg.cued_stimulus_s}
+        durations = {"cued": cfg.cued_stimulus_s}
         self.luminance_by_mode = {
             mode: (np.empty((0, len(TARGETS))) if self.static_only else
                    make_luminance_table(self.refresh_hz, duration))
@@ -951,9 +937,8 @@ class PsychoPyKeyboard:
             self._decode_future.cancel()
 
     def _check_abort(self) -> None:
-        """处理退出或暂停按键，并同步检查 EEG 采集健康状态。"""
-        key_list = ["escape", "space"] if self._pause_enabled else ["escape"]
-        keys = self.event.getKeys(keyList=key_list)
+        """处理退出按键，并同步检查 EEG 采集健康状态。"""
+        keys = self.event.getKeys(keyList=["escape"])
         if "escape" in keys:
             self.cancel.set()
             self._cancel_decode()
@@ -965,9 +950,6 @@ class PsychoPyKeyboard:
         # 闪烁期间记录帧间隔；此时不重建，避免破坏刺激时序，待闪烁结束后再重新排布。
         if not self.win.recordFrameIntervals:
             self._relayout_if_resized()
-        if self._pause_enabled and "space" in keys:
-            self._cancel_decode()
-            raise PauseSelection("用户按空格暂停；尚未提交的本轮不会写入字符")
 
     def _sync_output_text(self, force: bool = False) -> None:
         """仅在文本变化或强制刷新时更新顶部输出框。"""
@@ -1089,7 +1071,7 @@ class PsychoPyKeyboard:
             self._active_decode_cancel = None
 
     def _chatbox_gate(self, result: dict[str, Any]) -> tuple[bool, Optional[dict[str, Any]]]:
-        """复用自由输入的拒识门控（分数/分差/alpha）；阈值未标定时不拦截。"""
+        """ChatBox 拒识门控（分数/分差/alpha）；阈值未标定时不拦截。"""
         if not (self.cfg.chatbox_rejection_enabled and self.cfg.rejection_enabled
                 and self.cfg.rejection_thresholds_configured):
             return True, None
@@ -1110,7 +1092,7 @@ class PsychoPyKeyboard:
         luminance = .5 * (1 + np.sin(2 * np.pi * t * CHATBOX_WAKE_FREQUENCY_HZ))
         frames = np.repeat((2 * luminance - 1)[:, :, None], 3, axis=2)
         candidates = (CHATBOX_WAKE_FREQUENCY_HZ, *CHATBOX_WAKE_DECOYS_HZ)
-        self.collector.decoder = FbccaDecoder(self.cfg, calibration=None,
+        self.collector.decoder = FbccaDecoder(self.cfg,
                                               target_frequencies_hz=candidates)
         wins = 0
         needed = self.cfg.chatbox_wake_rounds
@@ -1208,18 +1190,6 @@ class PsychoPyKeyboard:
         self.result_details.draw()
         if self.result_warning.text:
             self.result_warning.draw()
-
-    def _prepare_free_pause_display(self, message: str) -> None:
-        """设置自由输入暂停页的文字内容。"""
-        self.header.text = "Free spelling"
-        self.footer.text = "SPACE or ENTER: resume   ·   ESC: exit"
-        self.pause_subtitle.text = message
-
-    def _draw_free_pause_display(self) -> None:
-        """绘制自由输入暂停页。"""
-        self._draw_status()
-        self.pause_title.draw()
-        self.pause_subtitle.draw()
 
     def _chat_layout(self, messages: Optional[Sequence[ChatMessage]] = None
                      ) -> tuple[list[str], list[tuple[int, int]]]:
@@ -1479,20 +1449,16 @@ class PsychoPyKeyboard:
                 return
 
     def _prepare_processing_status(self, record: TrialRecord) -> None:
-        """根据自由输入或提示测试模式准备处理状态页。"""
-        free = record.mode == "free"
-        self.header.text = (f"Selection {record.trial_id}" if free else
-                            f"Trial {record.trial_id} of {self.cfg.blocks*len(TARGETS)}")
-        self.footer.text = "SPACE: pause  ·  ESC: stop" if free else "ESC: stop"
-        target = None if free else TARGETS[record.true_class - 1]
-        self.processing_key_label.text = ("" if target is None else
-                                          target.display_label or "SPACE")
+        """准备提示测试的处理状态页。"""
+        self.header.text = f"Trial {record.trial_id} of {self.cfg.blocks*len(TARGETS)}"
+        self.footer.text = "ESC: stop"
+        target = TARGETS[record.true_class - 1]
+        self.processing_key_label.text = target.display_label or "SPACE"
         self.processing_key_label.height = (self._processing_key_size*.25 if
-                                            target is not None and target.symbol == "SPACE" else
+                                            target.symbol == "SPACE" else
                                             self._processing_key_size*.43)
-        positions = (self._processing_free_positions if free else
-                     self._processing_cued_positions)
-        self.processing_dot.pos, self.processing_title.pos, self.processing_subtitle.pos = positions
+        self.processing_dot.pos, self.processing_title.pos, self.processing_subtitle.pos = (
+            self._processing_cued_positions)
 
     def _draw_startup_check(self) -> None:
         """绘制无闪烁的启动显示检查页。"""
@@ -1625,7 +1591,7 @@ class PsychoPyKeyboard:
                              "quality": epoch.diagnostics.get("quality")}
 
     def _rejection_diagnostics(self, result: dict[str, Any]) -> dict[str, Any]:
-        """评估自由输入证据门控，但不把分类分数解释为概率。"""
+        """评估 ChatBox 证据门控，但不把分类分数解释为概率。"""
         cfg = self.cfg
         min_score = (None if cfg.rejection_min_score is None
                      else float(cfg.rejection_min_score))
@@ -1639,10 +1605,6 @@ class PsychoPyKeyboard:
         alpha_ratio: Optional[float] = None
         reason_codes: list[str] = []
         reasons: list[str] = []
-
-        if cfg.rejection_enabled and result.get("calibration_fallback"):
-            reason_codes.append("calibration_fallback")
-            reasons.append("个人模板回退，当前分数不适用个人模型的拒识阈值")
 
         if cfg.rejection_enabled and not configured:
             reason_codes.append("thresholds_unconfigured")
@@ -1729,24 +1691,6 @@ class PsychoPyKeyboard:
             "reason": reason,
         }
 
-    def _rejection_diagnostics_for_mode(self, mode: str,
-                                        result: dict[str, Any]) -> Optional[dict[str, Any]]:
-        """仅为自由输入模式计算拒识诊断，并按配置决定是否应用阈值。"""
-        return self._rejection_diagnostics(result) if mode == "free" else None
-
-    @staticmethod
-    def _rejection_calibration_notice() -> str:
-        """返回自由输入拒识阈值尚未标定时的安全提示。"""
-        return (
-            "Rejection thresholds are not configured.\n\n"
-            "Before FREE INPUT can add a character, space, or delete action, "
-            "calibrate score, margin, and alpha-ratio thresholds with real EEG while looking at an intended "
-            "target and while not intending to enter text, then verify them on "
-            "independent data.\n\n"
-            "FBCCA scores are not probabilities. This gate is not validated "
-            "automatic idle detection; no text will be entered until it is configured."
-        )
-
     def _blank_until(self, when: float) -> None:
         """保持静态状态页，直到指定的 LSL 时钟时间。"""
         while self.clock() < when:
@@ -1758,28 +1702,16 @@ class PsychoPyKeyboard:
                                 onset_event: EventStamp, offset_event: EventStamp) -> None:
         """呈现准备和闪烁阶段，并记录事件、逐帧时间及显示诊断。"""
         cfg = self.cfg
-        free = record.mode == "free"
         target_id = record.true_class
-        if free:
-            self._phase(record, "READY")
-            for frame in range(max(1, round(cfg.free_prepare_s * self.refresh_hz))):
-                self._check_abort()
-                self._draw_keys()
-                if frame == 0:
-                    self.win.callOnFlip(self.markers.mark, cue_event)
-                self.win.flip()
-            record.cue_onset = cue_event.timestamp
-            self.header.text = f"FREE | Selection {record.trial_id} | Keep looking at your chosen character"
-        else:
-            self._prepare_cued_trial(record, cue_event)
+        self._prepare_cued_trial(record, cue_event)
         self._phase(record, "STIMULATE")
         self.win.frameIntervals = []
         self.win.recordFrameIntervals = True
         try:
-            stimulus_frames = self.rgb_frames_by_mode["free" if free else "cued"]
+            stimulus_frames = self.rgb_frames_by_mode["cued"]
             for frame, rgb in enumerate(stimulus_frames):
                 self._check_abort()
-                self._draw_keys(target_id, rgb, show_outline=not free)
+                self._draw_keys(target_id, rgb, show_outline=True)
                 if frame == 0:
                     self.win.callOnFlip(self.markers.mark, onset_event)
                 self.win.callOnFlip(lambda: record.frame_lsl_times.append(self.clock()))
@@ -1832,92 +1764,42 @@ class PsychoPyKeyboard:
 
     def _apply_trial_result(self, record: TrialRecord, result: dict[str, Any],
                             target: Optional[Target]) -> None:
-        """执行拒识门控、写入字符并显示与模式匹配的反馈。"""
-        free = record.mode == "free"
+        """写入字符并显示提示测试反馈。"""
         record.result = result
         mains = result.get("quality", {}).get("mains_noise", {})
         if mains.get("line_dominated"):
             print(f"[试次{record.trial_id} 工频提示] " + "; ".join(mains["warnings"]), flush=True)
-        rejection_diagnostics = self._rejection_diagnostics_for_mode(record.mode, result)
-        if rejection_diagnostics is not None:
-            result["rejection_diagnostics"] = rejection_diagnostics
-        if rejection_diagnostics is not None and not rejection_diagnostics["accepted"]:
-            rejection_reason = rejection_diagnostics["reason"]
-            record.status = "rejected"
-            record.reason = rejection_reason
-            self._phase(record, "FEEDBACK")
-            if free:
-                # 拒识是后台门控结果；自由输入保持键盘页，不切到失败提示页。
-                # 试次仍会落盘为 rejected，且不会写入任何字符。
-                self.message.text = ""
-                self.header.text = "FREE | Keep looking at any character"
-                self.footer.text = "SPACE: pause  ·  ESC: stop"
-                return
-            return
-        if self.wheelchair is not None:
-            direction = DEFAULT_DIRECTION_BY_CLASS.get(int(result['prediction']))
-            if direction is not None:
-                try:
-                    self.wheelchair.move(direction)
-                    print(f"[轮椅] class={result['prediction']} -> {direction}", flush=True)
-                except Exception as exc:
-                    # 轮椅网络故障不能悄悄变成继续运动；发送STOP后结束本试次。
-                    try:
-                        self.wheelchair.stop(disarm=True)
-                    except Exception:
-                        pass
-                    raise RuntimeError(f"轮椅动作发送失败：{exc}") from exc
         self.ledger.apply_prediction(result['prediction'])
         record.text_applied = True
         record.status = "valid"
         self._sync_output_text()
         self._phase(record, "FEEDBACK")
-        pred = TARGETS[result['prediction'] - 1]
-        if free:
-            self.header.text = f"FREE | Selection {record.trial_id} | Recognized: {pred.symbol}"
-            feedback = (f"Recognized: {pred.symbol} ({pred.frequency_hz:.1f} Hz)\n\n"
-                        "Choose your next character in the next round.\n"
-                        "Keyboard SPACE: pause   ESC: exit")
-        else:
-            self._show_cued_result_feedback(record, result, target, mains)
-            return
-        if mains.get("line_dominated"):
-            feedback += "\nHigh mains interference: check electrode / reference / BIAS contact."
-        self.show_message(feedback, self.cfg.feedback_s)
+        self._show_cued_result_feedback(record, result, target, mains)
 
     def _run_trial(self, record: TrialRecord) -> None:
         """运行单个试次的准备、刺激、时序质控、解码和反馈流程。"""
         cfg = self.cfg
         self.collector.check_health()
         self._graphics_gc.collect(self.win)
-        free = record.mode == "free"
-        if free and record.true_class is not None:
-            raise ValueError("自由输入不应有预设目标")
-        target = None if free else TARGETS[record.true_class - 1]
-        target_id = None if target is None else target.class_id
+        target = TARGETS[record.true_class - 1]
+        target_id = target.class_id
         if self._decode_future is not None and not self._decode_future.done():
             raise RuntimeError("前一次分类尚未退出；请暂停后重试")
         self._decode_future = None
         self._active_decode_cancel = threading.Event()
         self._phase(record, "PREPARE")
-        if free:
-            self.header.text = f"FREE | Selection {record.trial_id} | Choose your next character"
-            self.footer.text = "Keyboard SPACE: pause   ·   ESC: exit   ·   <-: delete"
-        else:
-            self.header.text = f"Block {record.block_id}/{cfg.blocks} | Trial {record.trial_id}/{cfg.blocks*40} | Look at {target.symbol}"
-            self.footer.text = "Follow the highlighted key; trials advance automatically | ESC: stop"
+        self.header.text = f"Block {record.block_id}/{cfg.blocks} | Trial {record.trial_id}/{cfg.blocks*40} | Look at {target.symbol}"
+        self.footer.text = "Follow the highlighted key; trials advance automatically | ESC: stop"
         self._sync_output_text()
         details = {"mode": record.mode, "window_s": cfg.window_s,
                    "response_delay_s": cfg.response_delay_s,
-                   "minimum_stimulus_s": (cfg.stimulus_s if free else cfg.cued_stimulus_s),
-                   "continuous_eeg_saved_from_stimulus_onset": True}
-        if not free:
-            details["offline_max_delay_s"] = cfg.cued_offline_max_delay_s
-        if target is not None:
-            details["frequency_hz"] = target.frequency_hz
-        cue_event = EventStamp("ready_onset" if free else "cue_onset", record.trial_id, target_id,
-            {} if free else {"cue_s": cfg.cue_s, "progression": "automatic",
-                             "settle_s": cfg.cued_settle_s})
+                   "minimum_stimulus_s": cfg.cued_stimulus_s,
+                   "continuous_eeg_saved_from_stimulus_onset": True,
+                   "offline_max_delay_s": cfg.cued_offline_max_delay_s,
+                   "frequency_hz": target.frequency_hz}
+        cue_event = EventStamp("cue_onset", record.trial_id, target_id,
+            {"cue_s": cfg.cue_s, "progression": "automatic",
+             "settle_s": cfg.cued_settle_s})
         onset_event = EventStamp("stimulus_onset", record.trial_id, target_id, details)
         offset_event = EventStamp("stimulus_offset", record.trial_id, target_id)
         self._present_trial_stimulus(record, cue_event, onset_event, offset_event)
@@ -1955,9 +1837,9 @@ class PsychoPyKeyboard:
 
     def _draw_mode_menu(self, selected: Optional[int] = None,
                         flicker_rgb: Optional[np.ndarray] = None) -> None:
-        """绘制从左到右的三个模式方块，可按帧更新 SSVEP 亮度。"""
+        """绘制从左到右的两个模式方块，可按帧更新 SSVEP 亮度。"""
         if isinstance(selected, str):
-            selected = {"free": 0, "cued": 1, "chatbox": 2}.get(selected)
+            selected = {"cued": 0, "chatbox": 1}.get(selected)
         self.mode_title.draw()
         if flicker_rgb is None:
             self.mode_squares.colors = self.mode_static_colors
@@ -1975,17 +1857,15 @@ class PsychoPyKeyboard:
         self.mode_warning.draw()
 
     def _select_mode(self) -> str:
-        """通过三个横向 SSVEP 方块选择自由输入、提示测试或 ChatBox。"""
-        self._pause_enabled = False
+        """通过两个横向 SSVEP 方块选择提示测试或 ChatBox。"""
         self.output_box.autoDraw = False
         self.output_text.autoDraw = False
         self.output_caption.autoDraw = False
         self._apply_screen_layout("menu")
-        mode_names = ("free", "cued", "chatbox")
+        mode_names = ("cued", "chatbox")
         previous_decoder = getattr(self.collector, "decoder", None)
         from .decoding import FbccaDecoder
-        self.collector.decoder = FbccaDecoder(
-            self.cfg, calibration=None,
+        self.collector.decoder = FbccaDecoder(self.cfg,
             target_frequencies_hz=MODE_FREQUENCIES_HZ)
         trial_id = 0
         try:
@@ -2077,141 +1957,20 @@ class PsychoPyKeyboard:
                 if reason == "RETURN_TO_MODE_MENU":
                     continue
                 return reason
-            return self._run_free() if mode == "free" else self._run_cued()
-
-    def _wait_free_pause(self, message: str) -> None:
-        """暂停自由输入，等待解码任务结束并由用户恢复。"""
-        self._pause_enabled = False
-        self._cancel_decode()
-        self.event.getKeys(keyList=["space", "return", "num_enter"])
-        started = self.clock()
-        self.markers.mark(EventStamp("pause", 0, details={"typed_text": self.ledger.typed_text}))
-        self._prepare_free_pause_display(message)
-        self._sync_output_text()
-        self.win.recordFrameIntervals = False
-        while True:
-            self._check_abort()
-            keys = self.event.getKeys(keyList=["space", "return", "num_enter"])
-            ready = self._decode_future is None or self._decode_future.done()
-            self._draw_free_pause_display()
-            self.win.flip()
-            if ready and self.clock() - started >= .35 and keys:
-                self._decode_future = None
-                self._active_decode_cancel = None
-                self._pause_enabled = True
-                self.markers.mark(EventStamp("resume", 0))
-                return
+            return self._run_cued()
 
     @staticmethod
     def _release_free_eeg(record: TrialRecord) -> None:
         """在试次已持久化后释放自由输入记录中的大型数组。"""
         if record.result is not None:
             record.result.pop("epoch", None)
-            record.result.pop("history_notched_data", None)
         record.frame_flip_times.clear()
         record.frame_lsl_times.clear()
         record.frame_diagnostics.pop("intervals_s", None)
         record.frame_diagnostics.pop("psychopy_frame_intervals_s", None)
 
-    @staticmethod
-    def _advance_free_invalid_streak(current: int, record: TrialRecord,
-                                     *, pause_requested: bool,
-                                     exit_requested: bool) -> int:
-        """仅累计真实失败试次；正常拒识不视为故障。"""
-        if (pause_requested or exit_requested or record.text_applied
-                or record.status == "rejected"):
-            return 0
-        return current + 1
-
-    def _run_free(self) -> str:
-        """循环运行自由输入选择，处理暂停、拒识和连续无效保护。"""
-        self._pause_enabled = False
-        selection_id = 0
-        consecutive_invalid = 0
-        try:
-            if self.cfg.rejection_enabled and not self.cfg.rejection_thresholds_configured:
-                notice = self._rejection_calibration_notice()
-                print("[自由输入保护] " + notice.replace("\n", " "), flush=True)
-                self.show_message(notice, max(self.cfg.feedback_s, 2.0))
-            self._pause_enabled = True
-            while True:
-                selection_id += 1
-                record = TrialRecord(selection_id, 1, None, mode="free", start=self.clock())
-                pause_requested = False
-                exit_requested = False
-                fatal = False
-                try:
-                    self._run_trial(record)
-                except PauseSelection as exc:
-                    pause_requested = True
-                    record.status = "valid" if record.text_applied else "aborted"
-                    record.reason = str(exc)
-                except (AbortSession, KeyboardInterrupt) as exc:
-                    exit_requested = True
-                    record.status = "valid" if record.text_applied else "aborted"
-                    record.reason = str(exc) or "KeyboardInterrupt"
-                    self.cancel.set()
-                except Exception as exc:
-                    self._attach_failed_epoch(record, exc)
-                    record.status = "valid" if record.text_applied else "invalid"
-                    record.reason = f"{type(exc).__name__}: {exc}"
-                    fatal = (isinstance(exc, RuntimeFault) or not isinstance(exc, InvalidTrial)
-                             or self.collector.error is not None or self.markers.error is not None)
-                    self._note_fault(exc, fatal=fatal)
-                finally:
-                    self._cancel_decode()
-                    try:
-                        self.win.recordFrameIntervals = False
-                        self._draw_status()
-                        self.win.flip()
-                    except Exception as exc:
-                        fatal = True
-                        record.reason += f"; display-close error: {exc}"
-                        self._note_fault(exc, fatal=True, default="DISPLAY")
-                        if not record.text_applied:
-                            record.status = "invalid"
-                    record.end = self.clock()
-                    self._phase(record, "COMPLETE")
-                    try:
-                        self.markers.mark(EventStamp("selection_end", record.trial_id, None,
-                            {"mode": "free", "status": record.status, "reason": record.reason,
-                             "prediction": (record.result or {}).get("prediction"),
-                             "rejection_diagnostics": (
-                                 record.result.get("rejection_diagnostics")
-                                 if record.result else None),
-                             "text_applied": record.text_applied}))
-                    except Exception as exc:
-                        record.reason += f"; marker error: {exc}"
-                        fatal = True
-                        self._note_fault(exc, fatal=True, default="LSL_CONNECTION")
-                    self.ledger.commit(record)
-                    self._persist_trial(record)
-                    self._release_free_eeg(record)
-                if record.text_applied:
-                    consecutive_invalid = 0
-                elif record.status == "rejected":
-                    print(f"FREE {selection_id:04d}: rejected | {_brief_reason(record.reason)}", flush=True)
-                else:
-                    print(f"FREE {selection_id:04d}: no character added | {_brief_reason(record.reason)}", flush=True)
-                consecutive_invalid = self._advance_free_invalid_streak(
-                    consecutive_invalid, record,
-                    pause_requested=pause_requested, exit_requested=exit_requested)
-                if exit_requested or fatal:
-                    return record.reason or "Free spelling stopped"
-                if pause_requested:
-                    self._wait_free_pause("Your text is kept. Unfinished selection discarded.")
-                    consecutive_invalid = 0
-                elif consecutive_invalid >= self.cfg.max_consecutive_invalid:
-                    self._wait_free_pause("Several selections could not be decoded.\n"
-                                          "No character was inserted; check the EEG stream before resuming.")
-                    consecutive_invalid = 0
-        finally:
-            self._pause_enabled = False
-            self._cancel_decode()
-
     def _run_chatbox(self) -> str:
         """模式三：使用两页 SSVEP ChatBox 键盘，SEND 发送正文。"""
-        self._pause_enabled = False
         selection_id = 0
         page = self._chat_page = 1
         self.chat_history_text.text = self._format_chat_history()
@@ -2236,7 +1995,7 @@ class PsychoPyKeyboard:
                     self._refresh_suggestions()
                 frequencies = self._chatbox_page_frequencies(page)
                 from .decoding import FbccaDecoder
-                self.collector.decoder = FbccaDecoder(self.cfg, calibration=None,
+                self.collector.decoder = FbccaDecoder(self.cfg,
                                                       target_frequencies_hz=frequencies)
                 try:
                     symbol, result = self._run_chatbox_selection(page, selection_id)
@@ -2309,7 +2068,6 @@ class PsychoPyKeyboard:
                     page = 1
                     continue
         finally:
-            self._pause_enabled = False
             self._cancel_decode()
             self.collector.decoder = previous_decoder
             self._speaker.stop()
@@ -2395,7 +2153,6 @@ class PsychoPyKeyboard:
     def _run_cued(self) -> str:
         """按随机计划运行提示测试，并处理重试、分段休息和终止。"""
         cfg = self.cfg
-        self._pause_enabled = False
         try:
             from psychopy import sound
             self._rest_beep = sound.Sound(880, secs=0.15, volume=0.5, autoLog=False)
@@ -2566,8 +2323,6 @@ class PsychoPyKeyboard:
                     self.win = None
         finally:
             self._closed = True
-            if self.wheelchair is not None:
-                self.wheelchair.close()
             self._graphics_gc.close()
 
 

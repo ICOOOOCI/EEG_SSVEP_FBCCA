@@ -20,7 +20,6 @@ class Epoch:
     source_data: np.ndarray
     uniform_timestamps: np.ndarray
     source_timestamps: Optional[np.ndarray] = None
-    notch_context: Optional[NotchContext] = None
 
     def __post_init__(self) -> None:
         """规范化数组字段，并验证数据与各时间轴的维度。"""
@@ -56,10 +55,6 @@ class Epoch:
         if len(self.uniform_timestamps) != self.data.shape[1]:
             raise ValueError(
                 "Epoch.uniform_timestamps长度必须等于data的采样点数")
-        if self.notch_context is not None:
-            self.notch_context.validate_dimensions()
-            if self.notch_context.data.shape[0] != self.source_data.shape[0]:
-                raise ValueError("Epoch.notch_context 与 source_data 通道数不一致")
 
 def _parse_stream_metadata(info: Any, indices: Sequence[int]) -> dict:
     """解析 LSL 流 XML 元数据并提取选定通道与发布端滤波信息。"""
@@ -153,31 +148,15 @@ class MNEStreamWindow:
     def epoch(self, start: float, duration_s: float, nominal_fs: float,
               max_gap_factor: float = 1.5, rate_tolerance: float = .002,
               hard_gap_factor: float = 2.0, hard_rate_tolerance: float = .005,
-              max_warning_gaps: int = 1, *, notch_history_s: float = 0.0) -> Epoch:
+              max_warning_gaps: int = 1) -> Epoch:
         """校验指定事件窗的时间轴，并插值到声明采样率的均匀网格。"""
         _validate_fs(nominal_fs, None)
         if not np.isfinite(start) or not np.isfinite(duration_s) or duration_s <= 0:
             raise ValueError("事件时间/窗口长度不合法")
-        if not np.isfinite(notch_history_s) or notch_history_s < 0:
-            raise ValueError("陷波历史长度必须非负且有限")
         end = start + duration_s
         snapshot = self.snapshot()
         x, raw, local, corrections, valid, source = self._window_from_snapshot(snapshot, start, end)
         grid = start + np.arange(sample_count(duration_s, nominal_fs)) / nominal_fs
-        notch_context = None
-        if notch_history_s > 0:
-            requested_history_samples = int(round(notch_history_s * nominal_fs))
-            if requested_history_samples < 1:
-                raise ValueError("陷波历史长度不足一个采样点")
-            all_data, _, all_local, _, _ = snapshot
-            source_left = int(np.searchsorted(all_local, start, side="right") - 1)
-            history_left = max(0, source_left - requested_history_samples)
-            history_end = int(np.searchsorted(all_local, end, side="right"))
-            notch_context = NotchContext(
-                data=all_data[:, history_left:history_end].copy(),
-                local_timestamps=all_local[history_left:history_end].copy(),
-                uniform_timestamps=grid.copy(), source_offset=source_left - history_left,
-                epoch_end=float(end), requested_history_samples=requested_history_samples)
         diagnostics = {
             "timestamp_mode": self.timestamp_mode,
             "nominal_fs_hz": float(nominal_fs),
@@ -188,18 +167,6 @@ class MNEStreamWindow:
             "rate_warning_tolerance": float(rate_tolerance),
             "rate_hard_tolerance": float(hard_rate_tolerance),
         }
-        if notch_context is not None:
-            history_stamps = notch_context.local_timestamps
-            diagnostics["notch_history"] = {
-                "passed": False, "checked": False,
-                "requested_history_samples": notch_context.requested_history_samples,
-                "available_history_samples": notch_context.source_offset,
-                "raw_block_samples": len(history_stamps),
-                "source_start": float(history_stamps[0]) if len(history_stamps) else None,
-                "source_end": float(history_stamps[-1]) if len(history_stamps) else None,
-                "epoch_end": float(end),
-                "reason": "原分析窗须先通过校验；历史尚未判定合格",
-            }
         def failure_epoch(message: str) -> Epoch:
             """构造保留源数据和失败诊断的空事件窗。"""
             return Epoch(
@@ -208,7 +175,7 @@ class MNEStreamWindow:
                 clock_corrections=corrections.copy(),
                 diagnostics={**diagnostics, "hard_reason": message, "uniform_samples": 0},
                 source_data=x.copy(), uniform_timestamps=np.empty(0, dtype=float),
-                source_timestamps=source.copy(), notch_context=notch_context)
+                source_timestamps=source.copy())
         if len(local) < 3 or not np.all(valid):
             message = "窗口含NaN/Inf或有效样本不足"
             raise InvalidTrial(message, epoch=failure_epoch(message))
@@ -277,83 +244,8 @@ class MNEStreamWindow:
             "warning_gap_count": warning_gap_count,
             "hard_gap_count": hard_gap_count,
             "rate_mismatch_handling": "warning_only",
-        }, source_data=x.copy(), uniform_timestamps=grid.copy(), source_timestamps=source.copy(),
-                     notch_context=notch_context)
-        if notch_context is not None:
-            self._check_notch_history(epoch, nominal_fs, max_gap_factor, rate_tolerance,
-                                      hard_gap_factor, hard_rate_tolerance, max_warning_gaps)
+        }, source_data=x.copy(), uniform_timestamps=grid.copy(), source_timestamps=source.copy())
         return epoch
-
-    @staticmethod
-    def _check_notch_history(epoch: Epoch, nominal_fs: float, max_gap_factor: float,
-                             rate_tolerance: float, hard_gap_factor: float,
-                             hard_rate_tolerance: float, max_warning_gaps: int) -> None:
-        """只检查已复制的历史；失败仍保留原分析窗及可获得的原始历史。"""
-        context = epoch.notch_context
-        assert context is not None
-        stamps = context.local_timestamps
-        diagnostics = epoch.diagnostics["notch_history"] = {
-            "passed": False, "checked": True, "nominal_fs_hz": float(nominal_fs),
-            "requested_history_samples": context.requested_history_samples,
-            "available_history_samples": context.source_offset,
-            "raw_block_samples": len(stamps),
-            "source_offset": context.source_offset,
-            "source_start": float(stamps[0]) if len(stamps) else None,
-            "source_end": float(stamps[-1]) if len(stamps) else None,
-            "epoch_end": context.epoch_end,
-            "max_gap_factor": float(max_gap_factor), "hard_gap_factor": float(hard_gap_factor),
-            "max_warning_gaps": int(max_warning_gaps),
-            "rate_warning_tolerance": float(rate_tolerance),
-            "rate_hard_tolerance": float(hard_rate_tolerance),
-            "warnings": [],
-            "scope": "LSL-postprocessed timestamps; device sample loss and physical timing unverified",
-        }
-
-        def reject(message: str) -> None:
-            """记录历史检查失败原因并抛出携带事件窗的异常。"""
-            diagnostics["hard_reason"] = message
-            epoch.diagnostics["hard_reason"] = message
-            raise InvalidTrial(message, epoch=epoch)
-
-        if context.source_offset != context.requested_history_samples:
-            reject("陷波历史不足或已被环形缓冲覆盖；不缩短历史或补零")
-        if (len(stamps) < 3 or not np.isfinite(stamps).all()
-                or not np.isfinite(context.data).all()):
-            reject("陷波历史含NaN/Inf或样本不足")
-        intervals = np.diff(stamps)
-        if np.any(intervals <= 0):
-            reject("陷波历史时间戳不严格递增")
-        if (np.any(stamps > context.epoch_end)
-                or context.source_offset >= len(stamps)
-                or stamps[context.source_offset] > context.uniform_timestamps[0]
-                or stamps[-1] < context.uniform_timestamps[-1]):
-            reject("陷波历史在窗口终点前的样本不能覆盖完整分析网格；不使用未来样本或外推")
-        gap_mask = intervals > max_gap_factor / nominal_fs
-        hard_gap_mask = intervals >= hard_gap_factor / nominal_fs
-        observed_fs = (len(stamps) - 1) / (stamps[-1] - stamps[0])
-        rate_error = abs(observed_fs / nominal_fs - 1)
-        diagnostics.update(
-            timestamp_estimated_fs=float(observed_fs), rate_error_fraction=float(rate_error),
-            max_interval_s=float(intervals.max()), warning_gap_count=int(np.count_nonzero(gap_mask)),
-            hard_gap_count=int(np.count_nonzero(hard_gap_mask)),
-            timestamp_nominal_grid_offset_peak_to_peak_s=float(np.ptp(
-                stamps - stamps[0] - np.arange(len(stamps)) / nominal_fs)))
-        warning_gap_count = int(np.count_nonzero(gap_mask))
-        hard_gap_count = int(np.count_nonzero(hard_gap_mask))
-        if hard_gap_count:
-            reject(f"陷波历史存在{hard_gap_count}个明确缺样级时间戳间隔；不跨缺口补齐")
-        if warning_gap_count:
-            level = "较多" if warning_gap_count > max_warning_gaps else "轻微"
-            diagnostics["warnings"].append(
-                f"陷波历史存在{warning_gap_count}个{level}异常采样间隔；未达到明确缺样阈值，继续处理")
-        if rate_error > hard_rate_tolerance:
-            diagnostics["warnings"].append(
-                f"陷波历史时间戳采样率偏差较大但仅警告：{observed_fs:.3f}Hz")
-        elif rate_error > rate_tolerance:
-            diagnostics["warnings"].append(f"陷波历史时间戳采样率轻微偏差：{observed_fs:.3f}Hz")
-        diagnostics["rate_mismatch_handling"] = "warning_only"
-        diagnostics["passed"] = True
-        epoch.diagnostics["warnings"].extend(diagnostics["warnings"])
 
 class ContinuousLSL:
     """管理 MNE-LSL 连续采集、缓冲、健康检查和事件窗读取。"""
@@ -567,8 +459,7 @@ class ContinuousLSL:
         return self.buffer.epoch(
             start, self.cfg.window_s, self.fs, self.cfg.max_gap_factor,
             self.cfg.rate_tolerance, self.cfg.hard_gap_factor,
-            self.cfg.hard_rate_tolerance, self.cfg.max_warning_gaps,
-            notch_history_s=(self.cfg.notch_history_s if self.cfg.notch_mode == "history" else 0.0))
+            self.cfg.hard_rate_tolerance, self.cfg.max_warning_gaps)
 
     def close(self) -> None:
         """停止采集线程并安全断开 LSL 流；重复调用不会重复断开。"""
@@ -596,13 +487,6 @@ def decode_trial(trial_id: int, onset: float, collector: EegSource, cfg: Config,
     epoch = collector.wait_epoch(onset, cancel)
     if cancel.is_set():
         raise AbortSession("已取消分类")
-    notch_context = epoch.notch_context
-    if cfg.notch_mode == "history":
-        if (notch_context is None
-                or notch_context.requested_history_samples != round(cfg.notch_history_s * epoch.fs)):
-            raise InvalidTrial("history 模式缺少匹配的历史上下文，不回退到短窗陷波", epoch=epoch)
-    elif notch_context is not None:
-        raise InvalidTrial("epoch 模式收到history上下文，拒绝混用预处理设置", epoch=epoch)
     if cfg.input_unit == "AUTO":
         units = [str(item.get("unit", "UNKNOWN")) for item in
                  collector.metadata.get("selected_channels", [])]
@@ -627,17 +511,11 @@ def decode_trial(trial_id: int, onset: float, collector: EegSource, cfg: Config,
     started = time.monotonic()
     from threadpoolctl import threadpool_limits
     from .decoding import FbccaDecoder
-    try:
-        with threadpool_limits(limits=1):
-            decoder = getattr(collector, "decoder", None)
-            if decoder is None:
-                decoder = FbccaDecoder(cfg, calibration=getattr(collector, "calibration", None))
-            result = decoder.decode(epoch.data, epoch.fs, notch_context=notch_context)
-    except (ValueError, DegenerateSignalError, np.linalg.LinAlgError) as exc:
-        if cfg.notch_mode != "history":
-            raise
-        epoch.diagnostics["notch_processing_error"] = str(exc)
-        raise InvalidTrial(f"history预处理/分类失败：{exc}", epoch=epoch) from exc
+    with threadpool_limits(limits=1):
+        decoder = getattr(collector, "decoder", None)
+        if decoder is None:
+            decoder = FbccaDecoder(cfg)
+        result = decoder.decode(epoch.data, epoch.fs)
     if cancel.is_set():
         raise AbortSession("已取消分类，未提交结果")
     epoch.diagnostics["notch_processing"] = result["notch_processing"]

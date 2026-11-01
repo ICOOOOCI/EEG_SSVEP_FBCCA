@@ -8,7 +8,7 @@ deepseek_api_key_env = "DEEPSEEK_API_KEY"
 deepseek_timeout_s = 60.0
 # 系统提示词默认值见 config.py（面向 ALS/BCI 用户）；如需替换可在此填写单行字符串：
 # deepseek_system_prompt = "..."
-protocol = "standard_3.6s"
+window_s = 3.6
 blocks = 3
 random_seed = 20260928
 cue_s = 2.0
@@ -28,16 +28,14 @@ warmup_s = 10.0
 [decoder]
 target_fs = 250.0
 n_harmonics = 3
-filter_bank_profile = "m3_5band"
 weight_a = 1.25
 weight_b = 0.25
 notch_hz = 50.0
-notch_mode = "epoch"
 cca_regularization = 1e-10
 
 [rejection]
 # 2026-10-19 offline calibration: target blocks 1-2 versus screen/around,
-# with eyes-closed independent validation. Applies only to free mode.
+# with eyes-closed independent validation. Applies only to chatbox mode.
 rejection_enabled = true
 rejection_min_score = 0.25934562367893293
 rejection_min_margin = 0.0

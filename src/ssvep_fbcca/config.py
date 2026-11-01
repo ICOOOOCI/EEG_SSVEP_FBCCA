@@ -104,8 +104,7 @@ class Config:
     chatbox_rejection_enabled: bool = True
     chatbox_auto_rest_after: int = 3            # 连续被拦截轮数后进入休息；0 = 不自动休息
     chatbox_wake_rounds: int = 2                # 休息时需连续注视 WAKE 的轮数
-    free_prepare_s: float = 1.0
-    protocol: str = "standard_5s"
+    window_s: float = 3.6
     blocks: int = 3
     random_seed: int = 20260928
     cue_s: float = 2.0
@@ -170,16 +169,11 @@ class Config:
 
     target_fs: float = 250.0
     n_harmonics: int = 3
-    filter_bank_profile: str = "m3_5band"
     weight_a: float = 1.25
     weight_b: float = 0.25
     notch_hz: Optional[float] = 50.0
-    notch_mode: str = "epoch"
-    notch_history_s: float = 4.0
-    line_regression_hz: Optional[float] = None
     cca_regularization: float = 1e-10
     participant_id: Optional[str] = None
-    calibration_file: Optional[str] = None
     rejection_calibration_id: Optional[str] = None
 
     full_screen: bool = True
@@ -200,19 +194,9 @@ class Config:
         return tuple(f"CH{index + 1}" for index in self.channel_indices)
 
     @property
-    def window_s(self) -> float:
-        """返回当前实验协议对应的 EEG 分析窗长度（秒）。"""
-        presets = {"standard_5s": 5.0, "standard_3.6s": 3.6, "standard_2s": 2.0, "debug_2s": 2.0,
-                   "paper_window_1p25s": 1.25, "paper_offline_5s": 5.0}
-        if self.protocol not in presets:
-            raise ValueError(f"未知 protocol: {self.protocol}; 可选 {tuple(presets)}")
-        return presets[self.protocol]
-
-    @property
     def startup_buffer_s(self) -> float:
         """返回启动检查前必须积累的最短数据时长（秒）。"""
-        history_s = self.notch_history_s if self.notch_mode == "history" else 0.0
-        return max(self.warmup_s, history_s + 2.1)
+        return max(self.warmup_s, 2.1)
 
     @property
     def stimulus_s(self) -> float:
@@ -226,16 +210,12 @@ class Config:
 
     @property
     def filter_bands(self) -> tuple[tuple[float, float], ...]:
-        """返回当前 FBCCA 配置使用的滤波器组频带。"""
-        profiles = {"m3": M3_BANDS, "m3_5band": M3_5_BANDS,
-                    "line_robust": LINE_ROBUST_BANDS}
-        if self.filter_bank_profile not in profiles:
-            raise ValueError("filter_bank_profile 必须为 m3、m3_5band 或 line_robust")
-        return profiles[self.filter_bank_profile]
+        """返回 FBCCA 使用的滤波器组频带。"""
+        return M3_5_BANDS
 
     @property
     def rejection_thresholds_configured(self) -> bool:
-        """判断自由输入模式是否完整启用了分数、分差和频谱拒识。"""
+        """判断 ChatBox 是否完整启用了分数、分差和频谱拒识。"""
         return bool(
             self.rejection_enabled
             and self.rejection_min_score is not None
@@ -248,24 +228,10 @@ class Config:
 
     def validate(self) -> None:
         """验证所有配置项及跨字段约束，不合法时抛出 ``ValueError``。"""
-        _ = self.window_s
-        if self.calibration_file and not (self.participant_id and self.participant_id.strip()):
-            raise ValueError("加载个人模型必须设置 participant_id / --participant")
-        if self.notch_mode not in ("epoch", "history"):
-            raise ValueError("notch_mode 必须为 epoch 或 history")
-        if (not math.isfinite(self.notch_history_s) or self.notch_history_s <= 0):
-            raise ValueError("notch_history_s 必须为有限正数")
-        if self.notch_mode == "history":
-            if self.notch_hz is None or not math.isfinite(self.notch_hz) or not 0 < self.notch_hz < self.target_fs / 2:
-                raise ValueError("history 模式必须设置有效 notch_hz")
-            if self.calibration_file:
-                raise ValueError("history 模式目前仅支持基础FBCCA；旧个人模板使用epoch预处理，不能混用")
-            if self.line_regression_hz is not None:
-                raise ValueError("history 模式不能叠加未验证的单窗工频回归")
-            if self.rejection_enabled:
-                raise ValueError("history 模式的拒识分数尚未标定，不能套用epoch模式阈值")
-        if self.session_mode not in ("free", "cued", "chatbox"):
-            raise ValueError("session_mode 必须为 free、cued 或 chatbox")
+        if not math.isfinite(self.window_s) or self.window_s <= 0:
+            raise ValueError("window_s 必须为有限正数")
+        if self.session_mode not in ("cued", "chatbox"):
+            raise ValueError("session_mode 必须为 cued 或 chatbox")
         for name in ("deepseek_model", "deepseek_api_url", "deepseek_api_key_env"):
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
@@ -311,8 +277,6 @@ class Config:
             raise ValueError("timestamp_max_discontinuity_s 必须大于持续偏移门限")
         if not 0 < self.timestamp_slew_rate_s_per_s < .1:
             raise ValueError("时间轴微调速率必须在0和0.1之间")
-        if not math.isfinite(self.free_prepare_s) or self.free_prepare_s <= 0:
-            raise ValueError("free_prepare_s 必须是有限正数")
         for name in ("blocks", "n_harmonics", "min_valid_channels", "max_consecutive_invalid",
                      "cued_rest_every"):
             value = getattr(self, name)
@@ -388,18 +352,14 @@ class Config:
             raise ValueError("rejection_max_alpha_ratio 必须为正且有限")
         band_high = max(high for _, high in self.filter_bands)
         _validate_fs(self.target_fs, band_high)
-        _validate_line_regression_hz(self.line_regression_hz, self.target_fs)
-        if self.filter_bank_profile == "line_robust" and self.n_harmonics != 3:
-            raise ValueError("line_robust 复测方案必须使用 n_harmonics=3")
-        if self.filter_bank_profile == "m3_5band" and self.n_harmonics != 3:
-            raise ValueError("m3_5band 方案必须使用 n_harmonics=3")
+        if self.n_harmonics != 3:
+            raise ValueError("FBCCA 5子带方案必须使用 n_harmonics=3")
         _normalise_channel_indices(self.channel_indices)
         if len(self.channel_indices) != len(self.channel_positions):
             raise ValueError("channel_indices 和 channel_positions 数量必须一致")
         if not 1 <= self.min_valid_channels <= len(self.channel_indices):
             raise ValueError("min_valid_channels 超出所选通道数")
-        history_s = self.notch_history_s if self.notch_mode == "history" else 0.0
-        if self.buffer_s <= self.window_s + self.response_delay_s + self.data_wait_timeout_s + 2 + history_s:
+        if self.buffer_s <= self.window_s + self.response_delay_s + self.data_wait_timeout_s + 2:
             raise ValueError("内存缓冲区过短，可能覆盖仍待分类的 EEG")
         _validate_harmonics(self.n_harmonics, BENCHMARK_FREQUENCIES_HZ, self.target_fs)
         if self.upstream_lowpass_hz is not None:
@@ -407,28 +367,13 @@ class Config:
                 raise ValueError(f"已知发布端低通小于{band_high:g} Hz，不能使用当前频带")
 
 CONFIG = Config(
-    # 2026-10-19 5秒数据离线校准；只作用于 free 模式，cued 模式不调用拒识门控。
+    # 2026-10-19 5秒数据离线校准；只作用于 chatbox 模式，cued 模式不调用拒识门控。
     rejection_enabled=True,
     rejection_min_score=0.25934562367893293,
     rejection_min_margin=0.0,
     rejection_max_alpha_ratio=2.7631716193293068,
     rejection_calibration_id="offline_20261019_target12_screen_around_eyes",
 )
-
-def configure_fbcca_profile(cfg: Config, profile: str) -> Config:
-    """同时选择子带、谐波和论文融合权重，避免只切换M3频带却仍用3次谐波。
-
-    窗长和刺激流程独立于算法配置；m3不表示设备、空间布局和时序已严格复现。
-    原始采样率在接收/分类入口校验，不能通过升采样绕过Nyquist限制。
-    """
-    harmonics = {"m3": 5, "m3_5band": 3, "line_robust": 3}
-    if profile not in harmonics:
-        raise ValueError("FBCCA配置必须为 m3、m3_5band 或 line_robust")
-    configured = replace(cfg, filter_bank_profile=profile,
-                         n_harmonics=harmonics[profile], weight_a=1.25, weight_b=.25,
-                         line_regression_hz=None)
-    configured.validate()
-    return configured
 
 @dataclass(frozen=True)
 class Target:
@@ -466,11 +411,7 @@ TARGETS = tuple(Target(i + 1, symbol, r, c, FREQUENCIES_HZ_BY_ROW[r][c])
 
 BENCHMARK_FREQUENCIES_HZ = np.asarray([t.frequency_hz for t in TARGETS])
 
-M3_BANDS = tuple((float(8 * n - 2), 90.0) for n in range(1, 8))
-
 M3_5_BANDS = tuple((float(8 * n - 2), 90.0) for n in range(1, 6))
-
-LINE_ROBUST_BANDS = tuple((float(8 * n - 2), 48.0) for n in range(1, 4))
 
 DEFAULT_WINDOW_S = 2.0
 
@@ -501,7 +442,7 @@ def _validate_fs(fs: float, upper_hz: Optional[float] = 90.0) -> None:
 def _validate_filter_bands(filter_bands: Optional[Sequence[Sequence[float]]],
                            fs: float, target_fs: float) -> tuple[tuple[float, float], ...]:
     """验证滤波器组频带及原始、目标采样率。"""
-    bands = M3_BANDS if filter_bands is None else tuple(tuple(band) for band in filter_bands)
+    bands = M3_5_BANDS if filter_bands is None else tuple(tuple(band) for band in filter_bands)
     if not bands or any(len(band) != 2 for band in bands):
         raise ValueError("滤波组必须包含(low, high)频带")
     for low, high in bands:
@@ -518,15 +459,6 @@ def _validate_harmonics(n: int, frequencies: np.ndarray, fs: float) -> None:
         raise ValueError("谐波数必须为正整数")
     if not np.isfinite(fs) or fs <= 0 or np.max(frequencies) * n >= fs / 2:
         raise ValueError("最高参考谐波必须低于Nyquist频率")
-
-def _validate_line_regression_hz(value: Optional[float], fs: float) -> None:
-    """验证可选的工频回归频率。"""
-    if value is None:
-        return
-    if (isinstance(value, (bool, np.bool_))
-            or not isinstance(value, (int, float, np.integer, np.floating))
-            or not np.isfinite(value) or not 0 < value < fs / 2):
-        raise ValueError("line_regression_hz须为None或低于Nyquist频率的有限正数")
 
 
 

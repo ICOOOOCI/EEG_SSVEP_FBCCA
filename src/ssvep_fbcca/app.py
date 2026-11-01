@@ -3,7 +3,6 @@ from __future__ import annotations
 from .common import *
 from .config import *
 from .signal import *
-from .calibration import *
 from .acquisition import *
 from .events import *
 from .quality import *
@@ -65,47 +64,31 @@ def static_ui_self_test(cfg: Config, *, seconds: float = 5.0) -> dict:
         print("静态界面自检通过：40键、文字、输出框、固定提示与静态绘制时序已检查。", flush=True)
     return result
 
-def main(*, cfg: Optional[Config] = None, wheelchair=None) -> dict:
+def main(*, cfg: Optional[Config] = None) -> dict:
     """唯一运行入口；不要求CLI参数；返回全部内存记录。"""
     global LAST_SESSION
     cfg = replace(cfg if cfg is not None else CONFIG)
     cfg.validate()
-    print(f"[算法] {cfg.filter_bank_profile}；{len(cfg.filter_bands)}个子带，"
+    print(f"[算法] FBCCA；{len(cfg.filter_bands)}个子带，"
           f"上限{max(high for _, high in cfg.filter_bands):g}Hz，{cfg.n_harmonics}次谐波；"
           f"权重 a={cfg.weight_a:g}, b={cfg.weight_b:g}；分析窗{cfg.window_s:g}秒。\n"
           f"当前{len(cfg.channel_indices)}路设备/键盘时序适配不等同论文完整实验复现；"
           "LSL声明采样率不能独立证明硬件有效带宽。", flush=True)
-    if cfg.notch_mode == "history":
-        print(f"[预处理] history：{cfg.notch_history_s:g}秒历史辅助{cfg.notch_hz:g}Hz陷波，"
-              f"分类仍使用{cfg.window_s:g}秒；上下文不足即拒绝，不能加载旧个人模板。"
-              "此模式需新的在线数据验证准确率。", flush=True)
-    else:
-        print("[预处理] epoch：沿用当前分析窗独立陷波。", flush=True)
     if cfg.rejection_enabled:
         if cfg.rejection_thresholds_configured:
-            print("[自由输入拒识] 已启用："
+            print("[ChatBox拒识] 已启用："
                   f"max_score>={cfg.rejection_min_score:.6g}，"
                   f"margin>={cfg.rejection_min_margin:.6g}，"
                   f"alpha_ratio<={cfg.rejection_max_alpha_ratio:.6g}；"
-                  "仅作用于 free 模式。", flush=True)
+                  "仅作用于 chatbox 模式。", flush=True)
         else:
-            print("[自由输入拒识] 已启用但阈值未完整配置；未配置前不会写入字符。", flush=True)
-    calibration = None
-    if cfg.calibration_file:
-        model_path = Path(cfg.calibration_file)
-        if not model_path.is_absolute():
-            model_path = ROOT / model_path
-        calibration = PersonalCalibration.load(model_path, cfg)
-        print(f"个人模型已加载：受试者 {cfg.participant_id}，"
-              f"每类 {calibration.counts.min()}–{calibration.counts.max()} 次校准，"
-              f"模型 {calibration.model_id[:12]}", flush=True)
+            print("[ChatBox拒识] 已启用但阈值未完整配置；未配置前不拦截。", flush=True)
     print("[1/3] 运行环境由启动入口核验；准备保存目录检查…", flush=True)
     print(f"安全提示：此程序呈现{BENCHMARK_FREQUENCIES_HZ.min():g}–{BENCHMARK_FREQUENCIES_HZ.max():g}Hz视觉闪烁。"
           "对闪光敏感、有光敏性癫痫史者不要自行测试；"
           "出现眼部不适、头痛、眩晕等应立即按ESC停止。先在OpenBCI GUI检查电极与接线，程序不会直接开始闪烁。")
     collector = ContinuousLSL(cfg)
-    collector.calibration = calibration
-    collector.decoder = FbccaDecoder(cfg, calibration=calibration)
+    collector.decoder = FbccaDecoder(cfg)
     ledger = TrialLedger()
     markers: Optional[EventMarkers] = None
     app: Optional[PsychoPyKeyboard] = None
@@ -124,44 +107,26 @@ def main(*, cfg: Optional[Config] = None, wheelchair=None) -> dict:
     try:
         probe_save_directory(cfg.record_root)
         stage = "SAVE"
-        recorder = SessionRecorder(cfg, context={"mode_at_start": cfg.session_mode,
-                                                  "trained_model": ({
-                                                      "model_id": calibration.model_id,
-                                                      **calibration.metadata,
-                                                  } if calibration is not None else None)})
+        recorder = SessionRecorder(cfg, context={"mode_at_start": cfg.session_mode})
         collector.recorder = recorder
         print("\n[2/3] 连接EEG LSL并检查采样时间轴（请保持采集软件的LSL输出开启）…", flush=True)
         stage = "LSL_CONNECTION"
         collector.start()
         stage = "ACQUISITION"
         review = preflight_transport(cfg, collector)
-        if calibration is not None:
-            calibration.validate_config(cfg)
         stage = "LSL_CONNECTION"
         markers = EventMarkers(cfg, collector.clock)
         markers.mark(EventStamp("session_start", 0, details={"mode_at_start": cfg.session_mode}))
         stage = "INTERNAL"
         t = np.arange(sample_count(cfg.window_s, cfg.target_fs)) / cfg.target_fs
         warm = np.tile(np.sin(2*np.pi*10*t), (len(cfg.channel_indices), 1))
-        warm_context = None
-        if cfg.notch_mode == "history":
-            count = round(cfg.notch_history_s * cfg.target_fs)
-            history_t = np.arange(count + len(t)) / cfg.target_fs
-            history_x = np.tile(np.sin(2*np.pi*10*history_t), (len(cfg.channel_indices), 1))
-            warm = history_x[:, count:].copy()
-            warm_context = NotchContext(
-                data=history_x, local_timestamps=history_t,
-                uniform_timestamps=history_t[count:].copy(), source_offset=count,
-                epoch_end=count/cfg.target_fs + cfg.window_s,
-                requested_history_samples=count)
         from threadpoolctl import threadpool_limits
         with threadpool_limits(limits=1):
             # 启动预热也经过 Decoder 端口，替换解码器时不会遗漏启动路径。
-            collector.decoder.decode(warm, cfg.target_fs, notch_context=warm_context)
-        print("[3/3] Creating keyboard window; look at the left, center, or right mode square for SSVEP selection…", flush=True)
+            collector.decoder.decode(warm, cfg.target_fs)
+        print("[3/3] Creating keyboard window; look at the left or right mode square for SSVEP selection…", flush=True)
         stage = "DISPLAY"
-        app = PsychoPyKeyboard(cfg, collector, markers, ledger, recorder,
-                               wheelchair=wheelchair)
+        app = PsychoPyKeyboard(cfg, collector, markers, ledger, recorder)
         reason = app.run()
         if app.fatal_fault is not None:
             errors.append(app.fatal_fault)
@@ -190,7 +155,7 @@ def main(*, cfg: Optional[Config] = None, wheelchair=None) -> dict:
                 add_error(exc, "LSL_CONNECTION")
                 reason += f"; markers.close: {type(exc).__name__}: {exc}"
         report = (summarize_free_trials(ledger.records, ledger)
-                  if cfg.session_mode in ("free", "chatbox")
+                  if cfg.session_mode == "chatbox"
                   else summarize_trials(ledger.records, cfg.blocks * len(TARGETS)))
         session_artifact = None
         if recorder is not None:
@@ -232,7 +197,7 @@ def main(*, cfg: Optional[Config] = None, wheelchair=None) -> dict:
             "export_artifacts": dict(recorder.export_artifacts) if recorder else {},
             "marker_error": str(markers.error) if markers and markers.error else None,
             "validation_scope": "software events only; physical screen/device delays unmeasured"}
-        if cfg.session_mode in ("free", "chatbox"):
+        if cfg.session_mode == "chatbox":
             print_free_summary(report)
         else:
             print_summary(report, ledger)
@@ -282,8 +247,7 @@ def observe_lsl_timing(cfg: Config, collector: ContinuousLSL, seconds: float,
                     epoch = collector.buffer.epoch(
                         end - 2.0, 2.0, collector.fs, cfg.max_gap_factor,
                         cfg.rate_tolerance, cfg.hard_gap_factor,
-                        cfg.hard_rate_tolerance, cfg.max_warning_gaps,
-                        **({"notch_history_s": cfg.notch_history_s} if cfg.notch_mode == "history" else {}))
+                        cfg.hard_rate_tolerance, cfg.max_warning_gaps)
                     item.update(valid=True, diagnostics=epoch.diagnostics,
                                 mains_noise=mains_noise_diagnostics(
                                     epoch.data, epoch.fs, cfg.notch_hz))
@@ -346,8 +310,7 @@ def cli(argv=None) -> int:
     parser.add_argument("--seconds", type=positive_seconds, default=5.0,
                         help="静态自检展示或LSL预热后持续检查的秒数")
     parser.add_argument("--warmup-seconds", type=positive_seconds,
-                        help="EEG预热秒数；普通启动默认10秒，时间轴诊断默认30秒；"
-                             "history模式至少收齐4秒历史及2.1秒检查数据")
+                        help="EEG预热秒数；普通启动默认10秒，时间轴诊断默认30秒")
     # 两者可同时出现，以最后一个为准：启动器默认传 --fullscreen，用户追加 --windowed 即可覆盖。
     parser.add_argument("--windowed", dest="full_screen", action="store_const", const=False,
                         help="可拖动缩放的窗口（初始尺寸取配置 window_size）")
@@ -359,32 +322,11 @@ def cli(argv=None) -> int:
         parser.add_argument("--" + signal.replace("_", "-") + "-channel", type=int,
             help=f"{signal}在同一EEG LSL流内的列号（从0开始）；未提供时记为未获取")
     parser.add_argument("--timing-calibration", help="随会话保存的实测时间校准JSON；不自动应用补偿")
-    parser.add_argument("--fbcca-profile", choices=("m3", "m3_5band", "line_robust"),
-                        help="m3=论文7子带/90Hz/5谐波，需原始采样率>180Hz；"
-                             "m3_5band=5子带/90Hz/3谐波；"
-                             "line_robust=48Hz/3子带/3谐波适配方案")
-    parser.add_argument("--notch-mode", choices=("epoch", "history"),
-                        help="epoch=原短窗陷波；history=使用前4秒真实源数据辅助陷波，"
-                             "分析窗不变，仅支持无个人模板的FBCCA，需独立实测")
-    parser.add_argument("--line-regression-hz", type=positive_seconds, metavar="HZ",
-                        help="在每个分析窗回归去除指定工频的正弦/余弦；仅支持epoch，"
-                             "频率须为正且低于Nyquist，默认关闭")
     parser.add_argument("--response-delay", type=nonnegative_seconds, metavar="SECONDS",
                         help="从刺激软件事件到分析窗起点的延迟秒数，允许0；"
                              "此值不是实测设备延迟，默认0.23")
-    parser.add_argument("--protocol", choices=("standard_2s", "standard_3.6s", "standard_5s",
-                                               "paper_window_1p25s"),
-                        help="分析窗长：2秒、3.6秒、5秒或论文1.25秒；仅改变窗长，不复刻论文完整时序")
     parser.add_argument("--seed", type=int, help="提示目标随机种子；不同复测可使用不同非负整数")
-    parser.add_argument("--participant", help="匿名受试者编号；加载个人模型时必填")
-    parser.add_argument("--calibration", help="个人校准模型NPZ、完整模式2会话PKL或ZIP路径（受试者与配置须匹配）")
-    parser.add_argument("--chair-url", help="Ubuntu轮椅HTTP桥地址，例如 http://192.168.56.2:8765")
-    parser.add_argument("--chair-token", default=os.environ.get("CHAIR_API_TOKEN", ""),
-                        help="轮椅HTTP桥的X-Chair-Token；也可使用CHAIR_API_TOKEN")
-    parser.add_argument("--chair-client-id", help="轮椅HTTP客户端标识；不提供时自动生成")
-    parser.add_argument("--chair-strength", type=int, default=25, help="轮椅动作力度1..100，默认25")
-    parser.add_argument("--chair-duration", type=float, default=0.6, help="每次动作持续秒数0.1..3，默认0.6")
-    parser.add_argument("--chair-timeout", type=float, default=1.5, help="轮椅HTTP请求超时秒数，默认1.5")
+    parser.add_argument("--participant", help="匿名受试者编号，随会话配置保存")
     args = parser.parse_args(argv)
     if args.screen is not None and args.screen < 0:
         parser.error("screen 必须非负")
@@ -423,21 +365,12 @@ def cli(argv=None) -> int:
                 "lsl_timing" if args.check_lsl_timing else "diagnose" if args.diagnose else "eeg",
         "status": "failed", "errors": [], "exit_code": 0,
     }
-    wheelchair = None
     try:
         print("[启动] 正在加载运行依赖…", flush=True)
         report["checks"] = check_environment(static_ui=args.self_test_ui)
         cfg = Config.from_toml(args.config) if args.config else replace(CONFIG)
         if args.api_config is not None:
             cfg.deepseek_api_key_file = str(args.api_config.expanduser())
-        if args.fbcca_profile:
-            cfg = configure_fbcca_profile(cfg, args.fbcca_profile)
-        if args.protocol:
-            cfg.protocol = args.protocol
-        if args.notch_mode:
-            cfg.notch_mode = args.notch_mode
-        if args.line_regression_hz is not None:
-            cfg.line_regression_hz = args.line_regression_hz
         if args.response_delay is not None:
             cfg.response_delay_s = args.response_delay
         if args.seed is not None:
@@ -456,8 +389,6 @@ def cli(argv=None) -> int:
             cfg.timing_calibration_file = args.timing_calibration
         if args.participant:
             cfg.participant_id = args.participant
-        if args.calibration:
-            cfg.calibration_file = args.calibration
         if args.warmup_seconds is not None:
             cfg.warmup_s = args.warmup_seconds
         elif args.check_lsl_timing:
@@ -465,13 +396,6 @@ def cli(argv=None) -> int:
         if args.warmup_seconds is not None or args.check_lsl_timing:
             cfg.startup_timeout_s = max(cfg.startup_timeout_s, cfg.startup_buffer_s + 15.0)
         cfg.validate()
-        if args.chair_url:
-            wheelchair = WheelchairBridgeClient(
-                args.chair_url, token=args.chair_token, client_id=args.chair_client_id,
-                strength=args.chair_strength, duration_s=args.chair_duration,
-                timeout_s=args.chair_timeout)
-            print(f"[轮椅] 已启用HTTP桥：{args.chair_url}；启动时保持未ARM，"
-                  "仅在有效识别类别1-4时发送动作。", flush=True)
         if args.self_test_ui:
             report.update(static_ui_self_test(cfg, seconds=args.seconds))
         elif args.diagnose:
@@ -508,7 +432,7 @@ def cli(argv=None) -> int:
                   f"估计{collector.estimated_fs:.3f}Hz；最新样本年龄{age:.3f}s。"
                   "此检查不测量设备到屏幕的物理延迟。", flush=True)
         else:
-            result = main(cfg=cfg, wheelchair=wheelchair)
+            result = main(cfg=cfg)
             report.update({key: result[key] for key in
                            ("exit_code", "errors", "trial_faults", "stop_reason", "session_artifact")})
             report["status"] = "failed" if report["exit_code"] else "finished"
@@ -520,12 +444,6 @@ def cli(argv=None) -> int:
         report["errors"].append(fault)
         report["exit_code"] = fault["exit_code"]
         print_fault(fault)
-    finally:
-        if wheelchair is not None:
-            try:
-                wheelchair.close()
-            except Exception:
-                pass
     if write_diagnostic(report) is None and not report["exit_code"]:
         report["exit_code"] = 50
     return report["exit_code"]

@@ -328,133 +328,6 @@ def _slice_eeg_window(data: np.ndarray, fs: float, window_s: float,
         raise ValueError(short_message)
     return data[:, start:start + length].copy()
 
-def _regress_line_noise(window: np.ndarray, fs: float, line_hz: float) -> np.ndarray:
-    """仅使用当前窗拟合常数/正弦/余弦，减去正弦和余弦；与离线冻结方案一致。"""
-    x = window.copy()
-    t = np.arange(x.shape[-1]) / fs
-    design = np.column_stack((np.ones(t.size), np.sin(2*np.pi*line_hz*t),
-                              np.cos(2*np.pi*line_hz*t)))
-    coefficients = np.linalg.lstsq(design, x.T, rcond=None)[0]
-    x -= (design[:, 1:] @ coefficients[1:]).T
-    return x
-
-@dataclass
-class NotchContext:
-    """真实历史原始样本及其时间轴；末端包含分析窗但不含 epoch_end 后样本。
-
-    构造时仅验证结构，允许保留含 NaN 或异常时间戳的原始块供诊断。
-    source_offset 指向原事件窗左插值支撑样本，之前是要求的历史样本。
-    """
-    data: np.ndarray
-    local_timestamps: np.ndarray
-    uniform_timestamps: np.ndarray
-    source_offset: int
-    epoch_end: float
-    requested_history_samples: int
-
-    def __post_init__(self) -> None:
-        """规范化数组字段，并立即验证历史上下文维度。"""
-        self.data = _validate_eeg_ct(
-            self.data, name="NotchContext.data", allow_empty_samples=True)
-        self.local_timestamps = np.asarray(self.local_timestamps, dtype=float)
-        self.uniform_timestamps = np.asarray(self.uniform_timestamps, dtype=float)
-        self.validate_dimensions()
-
-    def validate_dimensions(self) -> None:
-        """验证原始数据、时间轴、偏移量和历史样本数的一致性。"""
-        if self.local_timestamps.ndim != 1 or len(self.local_timestamps) != self.data.shape[1]:
-            raise ValueError("NotchContext.local_timestamps 必须与原始块采样点数相同")
-        if self.uniform_timestamps.ndim != 1:
-            raise ValueError("NotchContext.uniform_timestamps 必须为一维")
-        for name in ("source_offset", "requested_history_samples"):
-            value = getattr(self, name)
-            if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)) or value < 0:
-                raise ValueError(f"NotchContext.{name} 必须为非负整数")
-        if self.source_offset > self.data.shape[1]:
-            raise ValueError("NotchContext.source_offset 不得超出原始块")
-
-def apply_history_notch(window: np.ndarray, fs: float, notch_hz: float,
-                        context: NotchContext) -> tuple[np.ndarray, dict[str, Any]]:
-    """真实历史块按声明采样率陷波，再插回原网格；不归一化、不做子带。
-
-    使用 SciPy iirnotch(Q=30) 和 filtfilt 默认 odd/padlen=9，与固定离线
-    实验一致。拒绝未来真实样本；右端反射填充仍可能带来滤波边缘瞬态。
-    """
-    from scipy.signal import filtfilt, iirnotch
-
-    _validate_fs(fs, None)
-    if not isinstance(context, NotchContext):
-        raise ValueError("历史陷波需要 NotchContext")
-    context.validate_dimensions()
-    x = _validate_eeg_ct(window, name="历史陷波原窗口")
-    raw, stamps, grid = context.data, context.local_timestamps, context.uniform_timestamps
-    if (not np.isfinite(x).all() or not np.isfinite(raw).all()
-            or not np.isfinite(stamps).all() or not np.isfinite(grid).all()
-            or not np.isfinite(context.epoch_end)):
-        raise ValueError("历史陷波数据、时间轴及终点须全部有限")
-    if (not isinstance(notch_hz, (int, float, np.integer, np.floating))
-            or isinstance(notch_hz, (bool, np.bool_)) or not np.isfinite(notch_hz)
-            or not 0 < notch_hz < fs / 2):
-        raise ValueError("历史陷波频率须位于0与Nyquist之间")
-    if x.shape[0] != raw.shape[0] or len(grid) != x.shape[1]:
-        raise ValueError("历史陷波原始块通道数及均匀网格长度须与窗口一致")
-    if context.source_offset != context.requested_history_samples or context.source_offset < 1:
-        raise ValueError("历史陷波必须有完整请求历史，不得用缩短块静默回退")
-    if len(stamps) - context.source_offset < 2 or np.any(np.diff(stamps) <= 0):
-        raise ValueError("历史陷波时间戳须严格递增且有至少两个事件窗支撑样本")
-    if np.any(stamps > context.epoch_end):
-        raise ValueError("历史陷波上下文含 epoch_end 之后的真实样本")
-    if len(grid) < 32 or np.any(np.diff(grid) <= 0):
-        raise ValueError("历史陷波需要至少32点的完整等间隔分析窗口")
-    time_atol = max(1e-10, 8 * np.finfo(float).eps * max(1.0, float(np.max(np.abs(grid)))))
-    expected_grid = grid[0] + np.arange(len(grid), dtype=float) / fs
-    duration = context.epoch_end - grid[0]
-    count_atol = max(1e-9, time_atol * fs)
-    expected_count = int(math.ceil(duration * fs - count_atol))
-    if (not np.allclose(grid, expected_grid, rtol=0, atol=time_atol)
-            or duration <= 0 or grid[-1] >= context.epoch_end or len(grid) != expected_count):
-        raise ValueError("历史陷波网格或终点不符合原窗口采样定义")
-    source_stamps = stamps[context.source_offset:]
-    if grid[0] < source_stamps[0] or grid[-1] > source_stamps[-1]:
-        raise ValueError("历史陷波事件窗支撑不足，不允许端点外推或补未来样本")
-    rebuilt = np.asarray([
-        np.interp(grid, source_stamps, channel)
-        for channel in raw[:, context.source_offset:]], dtype=float)
-    row_scale = np.maximum(np.max(np.abs(x), axis=1, keepdims=True),
-                           np.max(np.abs(rebuilt), axis=1, keepdims=True))
-    mismatch = np.abs(rebuilt - x)
-    tolerance = 1e-10 * np.abs(x) + 128 * np.finfo(float).eps * row_scale
-    if np.any(mismatch > tolerance):
-        raise ValueError("历史陷波上下文与原始均匀窗口不匹配")
-    bn, an = iirnotch(float(notch_hz), 30.0, fs=fs)
-    padlen = 3 * max(len(bn), len(an))
-    if raw.shape[1] <= padlen:
-        raise ValueError("历史陷波原始块过短，无法使用规定的反射边界")
-    filtered = filtfilt(bn, an, raw, axis=-1)
-    uniform = np.asarray([
-        np.interp(grid, source_stamps, channel)
-        for channel in filtered[:, context.source_offset:]], dtype=float)
-    if not np.isfinite(uniform).all():
-        raise ValueError("历史陷波产生非有限结果")
-    diagnostics = {
-        "mode": "history", "notch_mode": "history",
-        "notch_hz": float(notch_hz), "notch_q": 30.0,
-        "native_fs_hz": float(fs), "context_samples": int(raw.shape[1]),
-        "history_samples": int(context.source_offset),
-        "requested_history_samples": int(context.requested_history_samples),
-        "history_nominal_s": float(context.source_offset / fs),
-        "context_first_timestamp": float(stamps[0]),
-        "context_last_timestamp": float(stamps[-1]),
-        "source_first_timestamp": float(source_stamps[0]),
-        "epoch_end": float(context.epoch_end), "future_samples_used": 0,
-        "uniform_samples": int(len(grid)), "filtfilt_padtype": "odd",
-        "filtfilt_padlen_samples": int(padlen),
-        "raw_window_reconstruction_max_abs_error": float(np.max(mismatch)),
-        "normalization": "none; classifier normalizes after filtered interpolation",
-        "processing_order": "native raw history notch -> original uniform grid -> classifier",
-    }
-    return uniform, diagnostics
-
 def _preprocess_validated_window(window: np.ndarray, fs: float, window_s: float,
                                  target_fs: float, notch_hz: Optional[float],
                                  bands: tuple[tuple[float, float], ...]
@@ -507,10 +380,7 @@ def classify_eeg_window(data_ch_samples: np.ndarray, fs: float,
                         n_harmonics: int = N_HARMONICS, *, target_fs: float = TARGET_FS,
                         notch_hz: Optional[float] = 50.0, a: float = 1.25, b: float = .25,
                         regularization: float = 1e-10, min_valid_channels: int = 1,
-                        filter_bands: Optional[Sequence[Sequence[float]]] = None,
-                        line_regression_hz: Optional[float] = None,
-                        calibration: Optional[PersonalCalibration] = None,
-                        notch_context: Optional[NotchContext] = None) -> dict:
+                        filter_bands: Optional[Sequence[Sequence[float]]] = None) -> dict:
     """只接收EEG/算法参数，不接受真实目标，防止标签泄漏。
 
     FBCCA和标准CCA共享完全相同的EEG窗、通道、参考和第一子带。
@@ -520,11 +390,6 @@ def classify_eeg_window(data_ch_samples: np.ndarray, fs: float,
                    else np.asarray(target_frequencies_hz, float))
     bands = _validate_filter_bands(filter_bands, fs, target_fs)
     _validate_harmonics(n_harmonics, frequencies, fs)
-    _validate_line_regression_hz(line_regression_hz, min(fs, target_fs))
-    if notch_context is not None and calibration is not None:
-        raise ValueError("history 模式不能套用使用epoch预处理的个人模板")
-    if notch_context is not None and line_regression_hz is not None:
-        raise ValueError("history 模式不能叠加单窗工频回归")
     data = _validate_eeg_ct(data_ch_samples, name="EEG")
     if not np.isfinite(window_s) or window_s <= 0 or not np.isfinite(onset_s) or onset_s < 0:
         raise ValueError("EEG须二维，窗长为正，偏移非负")
@@ -532,41 +397,16 @@ def classify_eeg_window(data_ch_samples: np.ndarray, fs: float,
                                short_message="EEG时间窗覆盖不足")
     notch_processing = {"mode": "epoch", "notch_hz": notch_hz, "Q": 30.0,
                         "order": "uniform raw window -> normalize -> epoch notch -> subbands"}
-    history_notched_data = None
-    original_active = None
-    if notch_context is not None:
-        _, original_active = _normalised_rows(window)
-        window, notch_processing = apply_history_notch(window, fs, notch_hz, notch_context)
-        history_notched_data = window.copy()
-    if line_regression_hz is not None:
-        window = _regress_line_noise(window, fs, line_regression_hz)
-    normalized, active = _normalised_rows(window if original_active is None else window[original_active])
-    if original_active is not None:
-        active = original_active[active]
+    normalized, active = _normalised_rows(window)
     if isinstance(min_valid_channels, bool) or not isinstance(min_valid_channels, int) or min_valid_channels < 1:
         raise ValueError("min_valid_channels须为正整数")
     if len(active) < min_valid_channels:
         raise DegenerateSignalError(f"有效变化通道仅{len(active)}个，至少需要{min_valid_channels}个")
-    epoch_notch = notch_hz if notch_context is None else None
-    window, bank = _preprocess_validated_window(normalized, fs, window_s, target_fs, epoch_notch, bands)
+    window, bank = _preprocess_validated_window(normalized, fs, window_s, target_fs, notch_hz, bands)
     refs, white_refs = _cached_reference_whitening(
         tuple(float(f) for f in frequencies), float(target_fs), window.shape[-1],
         n_harmonics, float(regularization))
     scores, rho, weights = _fusion_whitened(bank, white_refs, a, b, regularization)
-    baseline_scores = scores.copy()
-    features = None
-    fallback = None
-    if calibration is not None:
-        calibration.validate_decoder(frequencies, target_fs, window_s, n_harmonics,
-                                     notch_hz, bands, regularization, line_regression_hz,
-                                     a, b, data.shape[0])
-        if len(active) != data.shape[0]:
-            fallback = "通道缺失，个人空间模板不可用，本试次回退FBCCA"
-        else:
-            try:
-                scores, features = calibration.score(bank, weights)
-            except DegenerateSignalError:
-                fallback = "滤波后通道退化，本试次回退FBCCA"
     best = int(np.argmax(scores))
     cca_scores = rho[0] ** 2
     cca_best = int(np.argmax(cca_scores))
@@ -580,15 +420,10 @@ def classify_eeg_window(data_ch_samples: np.ndarray, fs: float,
         "processing_fs": target_fs,
         "filter_bands_hz": bands,
         "n_harmonics": n_harmonics,
-        "line_regression_hz": line_regression_hz,
         "notch_processing": notch_processing,
-        "history_notched_data": history_notched_data,
-        "decoder": "FB-eCCA" if features is not None else "FBCCA",
-        "calibration_id": calibration.model_id if calibration is not None else None,
-        "calibration_fallback": fallback,
-        "fbcca_scores": baseline_scores,
-        "fbcca_prediction": int(np.argmax(baseline_scores)) + 1,
-        "ecca_features": features,
+        "decoder": "FBCCA",
+        "fbcca_scores": scores,
+        "fbcca_prediction": best + 1,
     }
 
 
