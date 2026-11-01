@@ -101,7 +101,22 @@ class Config:
     chatbox_prediction_wait_s: float = 1.0      # 每轮开始前最多等待 DeepSeek 候选的时间
     # 不打算输入时的保护：复用 rejection_* 阈值拦截低置信轮次。
     chatbox_rejection_enabled: bool = True
-    window_s: float = 3.6
+    # 主菜单、模式1、模式2的滑动窗口：窗长、识别间隔、分数平滑权重（1表示不平滑）、
+    # 选中所需的连续有效窗口数。
+    window_s: float = 2.5
+    decode_step_s: float = 0.25
+    score_ema: float = 1.0
+    selection_hold_windows: int = 4
+    # 模式3（34键）的滑动窗口和拒识阈值；窗长改变后分数范围会变，阈值要一起调整。
+    chat_window_s: float = 3.5
+    chat_score_ema: float = 0.5
+    chat_hold_windows: int = 2
+    chat_min_score: float = 0.40
+    chat_min_margin: float = 0.10
+    # 模式1方向键的二次确认及行驶看门狗。
+    chair_confirm_settle_s: float = 0.45
+    chair_confirm_timeout_s: float = 7.0
+    chair_watchdog_s: float = 1.0
     response_delay_s: float = 0.23
     blank_min_s: float = 0.5
     feedback_s: float = 0.5
@@ -185,9 +200,12 @@ class Config:
         return max(self.warmup_s, 2.1)
 
     @property
-    def stimulus_s(self) -> float:
-        """返回响应延迟与分析窗之和，即单次刺激时长。"""
-        return self.response_delay_s + self.window_s
+    def chat_profile(self) -> "Config":
+        """返回模式3使用的窗口和阈值；其他配置与主配置相同。"""
+        return replace(self, window_s=self.chat_window_s, score_ema=self.chat_score_ema,
+                       selection_hold_windows=self.chat_hold_windows,
+                       rejection_min_score=self.chat_min_score,
+                       rejection_min_margin=self.chat_min_margin)
 
     @property
     def filter_bands(self) -> tuple[tuple[float, float], ...]:
@@ -209,8 +227,6 @@ class Config:
 
     def validate(self) -> None:
         """验证所有配置项及跨字段约束，不合法时抛出 ``ValueError``。"""
-        if not math.isfinite(self.window_s) or self.window_s <= 0:
-            raise ValueError("window_s 必须为有限正数")
         for name in ("deepseek_model", "deepseek_api_url", "deepseek_api_key_env"):
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
@@ -252,7 +268,21 @@ class Config:
             raise ValueError("timestamp_max_discontinuity_s 必须大于持续偏移门限")
         if not 0 < self.timestamp_slew_rate_s_per_s < .1:
             raise ValueError("时间轴微调速率必须在0和0.1之间")
-        for name in ("n_harmonics", "min_valid_channels"):
+        for name in ("score_ema", "chat_score_ema"):
+            if not 0 < getattr(self, name) <= 1:
+                raise ValueError(f"{name} 必须在(0, 1]内")
+        for name in ("window_s", "chat_window_s"):
+            if not math.isfinite(getattr(self, name)) or getattr(self, name) <= 0:
+                raise ValueError(f"{name} 必须为有限正数")
+        for name in ("chat_min_score", "chat_min_margin"):
+            if not math.isfinite(getattr(self, name)) or getattr(self, name) < 0:
+                raise ValueError(f"{name} 必须非负且有限")
+        for name in ("decode_step_s", "chair_confirm_timeout_s", "chair_watchdog_s"):
+            if not math.isfinite(getattr(self, name)) or getattr(self, name) <= 0:
+                raise ValueError(f"{name} 必须为有限正数")
+        if not math.isfinite(self.chair_confirm_settle_s) or self.chair_confirm_settle_s < 0:
+            raise ValueError("chair_confirm_settle_s 必须非负且有限")
+        for name in ("n_harmonics", "min_valid_channels", "selection_hold_windows", "chat_hold_windows"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise ValueError(f"{name} 必须是正整数")
@@ -332,7 +362,7 @@ class Config:
             raise ValueError("channel_indices 和 channel_positions 数量必须一致")
         if not 1 <= self.min_valid_channels <= len(self.channel_indices):
             raise ValueError("min_valid_channels 超出所选通道数")
-        if self.buffer_s <= self.window_s + self.response_delay_s + self.data_wait_timeout_s + 2:
+        if self.buffer_s <= max(self.window_s, self.chat_window_s) + self.response_delay_s + self.data_wait_timeout_s + 2:
             raise ValueError("内存缓冲区过短，可能覆盖仍待分类的 EEG")
         _validate_harmonics(self.n_harmonics, BENCHMARK_FREQUENCIES_HZ, self.target_fs)
         if self.upstream_lowpass_hz is not None:
@@ -340,12 +370,12 @@ class Config:
                 raise ValueError(f"已知发布端低通小于{band_high:g} Hz，不能使用当前频带")
 
 CONFIG = Config(
-    # 2026-10-19 5秒数据离线校准；用于聊天键盘的拒识门控。
+    # 分数和分差由2026-10-19会话的2.5秒滑动窗口离线扫描得到；模式3见 chat_min_*。
     rejection_enabled=True,
-    rejection_min_score=0.25934562367893293,
-    rejection_min_margin=0.0,
+    rejection_min_score=0.40,
+    rejection_min_margin=0.10,
     rejection_max_alpha_ratio=2.7631716193293068,
-    rejection_calibration_id="offline_20261019_target12_screen_around_eyes",
+    rejection_calibration_id="offline_20261019_sliding_window_sweep",
 )
 
 @dataclass(frozen=True)

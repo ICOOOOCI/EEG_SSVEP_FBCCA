@@ -14,6 +14,7 @@ from .intent import *
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 from .voice import Speaker, make_speaker
 from .wheelchair import WheelchairPort
+from .selection import ChairStateMachine, SelectionVote
 from .predict import WordPredictor, apply_suggestion, llm_suggestions, merge_suggestions
 
 
@@ -126,12 +127,10 @@ CHAIR_FREQUENCY_BY_SYMBOL = {"UP": 12.0, "DOWN": 15.0, "LEFT": 8.4, "RIGHT": 13.
 CHAIR_KEY_STOP = "#F0635C"
 CHAIR_STATE_STOPPED = "#8E2F2B"
 CHAIR_STATE_MOVING = "#1F7A55"
-
-def chair_decision(symbol: str, accepted: bool, stop_pressed: bool) -> str:
-    """把一轮识别结果变成动作；任何不确定的情况都停止。"""
-    if stop_pressed or not accepted or symbol == "STOP":
-        return "STOP"
-    return symbol
+CHAIR_STATE_CONFIRM = "#8A6A12"
+CHAIR_KEY_PAUSED = "#4A5068"
+# EEG arrives slightly after the clock reading; windows end this far in the past.
+DATA_LAG_S = 0.05
 
 def _chatbox_display_label(symbol: str) -> str:
     """将 ChatBox 页面内部动作名称转换为屏幕标签。"""
@@ -337,6 +336,8 @@ class PsychoPyKeyboard:
         self.wheelchair = wheelchair if wheelchair is not None else WheelchairPort()
         self._chair_state = "STOP"
         self._chair_stop_pressed = False
+        self._chair_active: Optional[tuple[str, ...]] = None
+        self._live_candidate: Optional[int] = None
         self.fatal_fault: Optional[dict] = None
         self.trial_faults: list[dict] = []
         self.visual, self.event = visual, event
@@ -383,7 +384,6 @@ class PsychoPyKeyboard:
         visual, cfg = self.visual, self.cfg
         self.win = _create_keyboard_window(visual, cfg)
         self.win.mouseVisible = False
-        self.mode_rgb_frames = np.empty((0, 3, 3))
         layout = self._build_visuals()
         self._finish_window_setup(layout)
 
@@ -494,6 +494,8 @@ class PsychoPyKeyboard:
                                                (0, -height * .08), CHAT_KEY_FUNCTION)
         self.arm_menu_label = visual.TextStim(self.win, text="MENU", pos=(0, -height * .08),
             height=height * .05, font=menu_font, color=CHAT_KEY_TEXT, bold=True, autoLog=False)
+        self.arm_menu_outline = self._rounded_rect(height * .30 + 18 * ui_scale, height * .205 + 18 * ui_scale,
+            height * .03 + 9 * ui_scale, (0, -height * .08), None, CHAT_SELECT, max(1, 3 * ui_scale))
         self._layout_size = (width, height)
         return layout
 
@@ -547,25 +549,6 @@ class PsychoPyKeyboard:
             raise RuntimeError("未测得足够稳定的刷新率；不以猜测的60Hz继续实验")
         self.refresh_hz = float(refresh)
         self.win.refreshThreshold = cfg.frame_long_factor / self.refresh_hz
-        mode_frames = max(1, math.ceil(cfg.stimulus_s * self.refresh_hz) + 1)
-        mode_t = np.arange(mode_frames)[:, None] / self.refresh_hz
-        mode_freqs = np.asarray(MODE_FREQUENCIES_HZ, dtype=float)[None, :]
-        mode_luminance = .5 * (1 + np.sin(2 * np.pi * mode_t * mode_freqs))
-        self.mode_rgb_frames = np.repeat((2 * mode_luminance - 1)[:, :, None], 3, axis=2)
-        self.chat_rgb_frames = {}
-        for page in (1, 2):
-            frequencies = self._chatbox_page_frequencies(page)
-            frames = max(1, math.ceil(cfg.stimulus_s * self.refresh_hz) + 1)
-            t = np.arange(frames)[:, None] / self.refresh_hz
-            freqs = np.asarray(frequencies, dtype=float)[None, :]
-            luminance = .5 * (1 + np.sin(2 * np.pi * t * freqs))
-            self.chat_rgb_frames[page] = np.repeat((2 * luminance - 1)[:, :, None], 3, axis=2)
-        chair_t = np.arange(max(1, math.ceil(cfg.stimulus_s * self.refresh_hz) + 1))[:, None] / self.refresh_hz
-        chair_freqs = np.asarray([CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS], dtype=float)[None, :]
-        chair_luminance = .5 * (1 + np.sin(2 * np.pi * chair_t * chair_freqs))
-        self.chair_rgb_frames = np.repeat((2 * chair_luminance - 1)[:, :, None], 3, axis=2)
-        arm_luminance = .5 * (1 + np.sin(2 * np.pi * chair_t * ARM_MENU_HZ))
-        self.arm_rgb_frames = np.repeat((2 * arm_luminance - 1)[:, :, None], 3, axis=2)
         flips = []
         for _ in range(121):
             self._check_abort()
@@ -602,19 +585,14 @@ class PsychoPyKeyboard:
                 "labels": list(MODE_NAMES),
                 "frequencies_hz": list(MODE_FREQUENCIES_HZ),
                 "decoy_frequencies_hz": list(MODE_DECOYS_HZ),
-                "frames": len(self.mode_rgb_frames),
-                "scheduled_s": len(self.mode_rgb_frames) / self.refresh_hz,
                 "control": "ssvep",
             },
             "wheelchair_keyboard": {"symbols": list(CHAIR_SYMBOLS),
-                                    "frequencies_hz": [CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS],
-                                    "frames": len(self.chair_rgb_frames)},
+                                    "frequencies_hz": [CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS]},
             "chatbox_keyboard": {
                 "pages": {
                     str(page): {"layout": "custom", "symbols": list(symbols),
-                                "frequencies_hz": list(frequencies),
-                                "frames": len(self.chat_rgb_frames[page]),
-                                "scheduled_s": len(self.chat_rgb_frames[page]) / self.refresh_hz}
+                                "frequencies_hz": list(frequencies)}
                     for page, symbols, frequencies in (
                         (page, self._chatbox_page_symbols(page), self._chatbox_page_frequencies(page))
                         for page in (1, 2))
@@ -625,6 +603,10 @@ class PsychoPyKeyboard:
                 "menu_action": "return_to_menu",
                 "send_action": "submit_chat_draft",
             },
+            "selection": {"window_s": cfg.window_s, "chat_window_s": cfg.chat_window_s,
+                          "decode_step_s": cfg.decode_step_s, "score_ema": cfg.score_ema,
+                          "chat_score_ema": cfg.chat_score_ema, "hold_windows": cfg.selection_hold_windows,
+                          "chat_hold_windows": cfg.chat_hold_windows},
             "static_render_check": check, "physical_timing_measured": False, "luminance_gamma_calibrated": False}
 
     def _build_chatbox_page_visuals(self, width: float, height: float,
@@ -789,69 +771,138 @@ class PsychoPyKeyboard:
         self._sync_output_text(force=True)
         return record
 
-    def _present_and_decode(self, selection_id: int, frames: np.ndarray, onset_event: EventStamp,
-                            draw_flicker, draw_static) -> dict[str, Any]:
-        """呈现一轮闪烁（逐帧调用 draw_flicker），之后静止等待 FBCCA 解码结果。"""
-        offset_event = EventStamp(onset_event.kind.replace("onset", "offset"), selection_id)
-        self.win.recordFrameIntervals = True
+    def _flicker_rgb(self, frequencies: np.ndarray, frame: int) -> np.ndarray:
+        """返回本帧各方块的灰度亮度；持续闪烁，不依赖预先生成的帧表。"""
+        level = np.sin(2 * np.pi * frequencies * frame / self.refresh_hz)
+        return np.repeat(level[:, None], 3, axis=1)
+
+    def _window_candidate(self, vote: SelectionVote, result: dict[str, Any], gate: str,
+                          visible: int, profile: Optional[Config] = None) -> Optional[int]:
+        """平滑分数并判断本窗口是否有效；返回候选序号，隐藏对照频率胜出时返回 None。
+
+        gate 为 required 时阈值缺失即无效，optional 时阈值缺失不拦截，off 时不做门控。
+        """
+        profile = self.cfg if profile is None else profile
+        smoothed = vote.smooth(result["scores"])
+        configured = profile.rejection_thresholds_configured
+        if gate == "required" and not configured:
+            return None
+        if gate != "off" and configured:
+            if not self._rejection_diagnostics(dict(result, scores=smoothed), profile)["accepted"]:
+                return None
+        best = int(np.argmax(smoothed))
+        return best if best < visible else None
+
+    def _flicker_until(self, kind: str, trial_id: int, decode_frequencies: Sequence[float],
+                       shown_frequencies: Sequence[float], draw: Any, on_window: Any,
+                       on_frame: Any = None, window_floor: Any = None,
+                       profile: Optional[Config] = None) -> Any:
+        """持续闪烁并按滑动窗口识别，直到回调返回非 None 的结果。
+
+        EEG 只取本次闪烁开始之后的数据；解码在工作线程进行，来不及时跳过窗口，
+        不会累积延迟。无效窗口以 ``on_window(None)`` 通知。
+        """
+        from .decoding import FbccaDecoder
+        cfg = self.cfg if profile is None else profile
+        shown = np.asarray(shown_frequencies, dtype=float)
+        previous_decoder = getattr(self.collector, "decoder", None)
+        self.collector.decoder = FbccaDecoder(cfg, target_frequencies_hz=tuple(decode_frequencies))
+        onset = EventStamp(kind, trial_id, details={"decode_frequencies_hz": list(decode_frequencies),
+                                                    "window_s": cfg.window_s, "step_s": cfg.decode_step_s})
+        cancel = self._active_decode_cancel = threading.Event()
+        future = None
+        frame = 0
+        window_id = 0
+        next_decode = 0.0
+        self._live_candidate = None
         self.win.frameIntervals = []
+        self.win.recordFrameIntervals = True
         try:
-            for frame_index, frame in enumerate(frames):
+            while True:
                 self._check_abort()
-                draw_flicker(frame)
-                if frame_index == 0:
-                    self.win.callOnFlip(self.markers.mark, onset_event)
+                if on_frame is not None:
+                    value = on_frame()
+                    if value is not None:
+                        return value
+                draw(self._flicker_rgb(shown, frame))
+                if frame == 0:
+                    self.win.callOnFlip(self.markers.mark, onset)
                 self.win.flip()
-            self.win.callOnFlip(self.markers.mark, offset_event)
-            self.win.flip()
+                frame += 1
+                if onset.timestamp is None:
+                    raise RuntimeFault("DISPLAY", "闪烁开始事件标记缺失")
+                if self.markers.error is not None:
+                    raise RuntimeFault("LSL_CONNECTION", f"LSL Marker发送失败：{self.markers.error}")
+                if future is not None and future.done():
+                    finished, future = future, None
+                    self._decode_future = None
+                    try:
+                        result = finished.result()
+                    except InvalidTrial as exc:
+                        print(f"[窗口无效] {exc}", flush=True)
+                        result = None
+                    value = on_window(result)
+                    if value is not None:
+                        return value
+                now = self.clock()
+                if future is None and now >= next_decode:
+                    start = now - DATA_LAG_S - cfg.window_s
+                    floor = onset.timestamp + cfg.response_delay_s
+                    if window_floor is not None:
+                        floor = max(floor, window_floor())
+                    if start >= floor:
+                        window_id += 1
+                        next_decode = now + cfg.decode_step_s
+                        future = self._decode_future = self.executor.submit(
+                            decode_trial, window_id, start - cfg.response_delay_s,
+                            self.collector, cfg, cancel)
         finally:
             self.win.recordFrameIntervals = False
-        if onset_event.timestamp is None or offset_event.timestamp is None:
-            raise RuntimeFault("DISPLAY", "ChatBox stimulus event marker missing")
-        if self.markers.error is not None:
-            raise RuntimeFault("LSL_CONNECTION", f"LSL Marker send failed: {self.markers.error}")
-        self._active_decode_cancel = threading.Event()
-        self._decode_future = self.executor.submit(
-            decode_trial, selection_id, onset_event.timestamp, self.collector,
-            self.cfg, self._active_decode_cancel)
-        while (not self._decode_future.done()
-               or self.clock() < offset_event.timestamp + self.cfg.blank_min_s):
-            self._check_abort()
-            self._poll_chat_reply()
-            draw_static()
-            self.win.flip()
-        try:
-            return self._decode_future.result()
-        finally:
+            self._live_candidate = None
+            cancel.set()
+            if future is not None:
+                try:
+                    future.result(timeout=2.0)
+                except Exception:
+                    pass
             self._decode_future = None
             self._active_decode_cancel = None
+            self.collector.decoder = previous_decoder
 
-    def _chatbox_gate(self, result: dict[str, Any]) -> tuple[bool, Optional[dict[str, Any]]]:
-        """ChatBox 拒识门控（分数/分差/alpha）；阈值未标定时不拦截。"""
-        if not (self.cfg.chatbox_rejection_enabled and self.cfg.rejection_enabled
-                and self.cfg.rejection_thresholds_configured):
-            return True, None
-        diagnostics = self._rejection_diagnostics(result)
-        return bool(diagnostics["accepted"]), diagnostics
+    def _select_by_windows(self, kind: str, trial_id: int, decode_frequencies: Sequence[float],
+                           shown_frequencies: Sequence[float], draw: Any, gate: str,
+                           on_frame: Any = None, profile: Optional[Config] = None) -> Any:
+        """闪烁直到连续有效窗口选中同一方块，返回 (序号, 结果)，或 on_frame 的返回值。"""
+        cfg = self.cfg if profile is None else profile
+        vote = SelectionVote(cfg.selection_hold_windows, cfg.score_ema)
+        visible = len(shown_frequencies)
 
-    def _run_chatbox_selection(self, page: int, selection_id: int) -> tuple[str, dict[str, Any]]:
-        """呈现一页 ChatBox SSVEP 刺激并返回页面内动作及解码结果。"""
+        def on_window(result: Optional[dict[str, Any]]) -> Optional[tuple[int, dict[str, Any]]]:
+            candidate = None if result is None else self._window_candidate(vote, result, gate, visible, cfg)
+            self._live_candidate = candidate
+            stable = vote.record(candidate)
+            return None if stable is None else (stable, result)
+
+        return self._flicker_until(kind, trial_id, decode_frequencies, shown_frequencies,
+                                   draw, on_window, on_frame, profile=cfg)
+
+    def _run_chatbox_selection(self, page: int, selection_id: int) -> Optional[tuple[str, dict[str, Any]]]:
+        """持续闪烁一页键盘直到选中；打字期间回复到达时返回 None，先处理回复。"""
         symbols = self._chatbox_page_symbols(page)
-        frames = self.chat_rgb_frames[page]
-        onset_event = EventStamp("chatbox_stimulus_onset", selection_id,
-                                 details={"page": page, "symbols": list(symbols),
-                                          "frequencies_hz": list(
-                                              self._chatbox_page_frequencies(page)),
-                                          "suggestions": (list(self._suggestions) if page == 1
-                                                          else [])})
-        result = self._present_and_decode(
-            selection_id, frames, onset_event,
-            lambda frame: self._draw_chatbox_keyboard(page, flicker_rgb=frame),
-            lambda: self._draw_chatbox_keyboard(page))
-        prediction = int(result["prediction"])
-        if not 1 <= prediction <= len(symbols):
-            raise InvalidTrial(f"ChatBox prediction out of range: {prediction}")
-        return symbols[prediction - 1], result
+        frequencies = self._chatbox_page_frequencies(page)
+        gate = "optional" if self.cfg.chatbox_rejection_enabled else "off"
+
+        def reply_ready() -> Optional[str]:
+            return "REPLY" if self._chat_future is not None and self._chat_future.done() else None
+
+        outcome = self._select_by_windows(
+            "chatbox_stimulus_onset", selection_id, frequencies, frequencies,
+            lambda frame: self._draw_chatbox_keyboard(page, flicker_rgb=frame,
+                                                      selected_index=self._live_candidate),
+            gate, reply_ready, self.cfg.chat_profile)
+        if outcome == "REPLY":
+            return None
+        return symbols[outcome[0]], outcome[1]
 
     def _chat_layout(self, messages: Optional[Sequence[ChatMessage]] = None
                      ) -> tuple[list[tuple[str, Optional[str]]], list[tuple[int, int]]]:
@@ -1093,9 +1144,10 @@ class PsychoPyKeyboard:
             self.fatal_fault = fault
         print_fault(fault)
 
-    def _rejection_diagnostics(self, result: dict[str, Any]) -> dict[str, Any]:
-        """评估 ChatBox 证据门控，但不把分类分数解释为概率。"""
-        cfg = self.cfg
+    def _rejection_diagnostics(self, result: dict[str, Any],
+                               profile: Optional[Config] = None) -> dict[str, Any]:
+        """评估窗口证据门控，但不把分类分数解释为概率。"""
+        cfg = self.cfg if profile is None else profile
         min_score = (None if cfg.rejection_min_score is None
                      else float(cfg.rejection_min_score))
         min_margin = (None if cfg.rejection_min_margin is None
@@ -1214,81 +1266,20 @@ class PsychoPyKeyboard:
         self.output_text.autoDraw = False
         self.output_caption.autoDraw = False
         self.win.color = MODE_MENU_BG
-        previous_decoder = getattr(self.collector, "decoder", None)
-        from .decoding import FbccaDecoder
-        self.collector.decoder = FbccaDecoder(self.cfg,
-            target_frequencies_hz=(*MODE_FREQUENCIES_HZ, *MODE_DECOYS_HZ))
-        trial_id = 0
-        try:
-            self.event.getKeys(keyList=["escape"])
-            while True:
-                trial_id += 1
-                self._check_abort()
-                self.mode_status.text = ""
-                onset_event = EventStamp(
-                    "mode_stimulus_onset", trial_id, details={
-                        "frequencies_hz": list(MODE_FREQUENCIES_HZ),
-                        "decoy_frequencies_hz": list(MODE_DECOYS_HZ),
-                        "labels": list(MODE_NAMES), "control": "ssvep"})
-                offset_event = EventStamp("mode_stimulus_offset", trial_id)
-                frame_flip_times: list[float] = []
-                self.win.recordFrameIntervals = True
-                self.win.frameIntervals = []
-                try:
-                    for frame, rgb in enumerate(self.mode_rgb_frames):
-                        self._check_abort()
-                        self._draw_mode_menu(flicker_rgb=rgb)
-                        if frame == 0:
-                            self.win.callOnFlip(self.markers.mark, onset_event)
-                        flip_time = self.win.flip()
-                        frame_flip_times.append(float(flip_time))
-                    self.win.callOnFlip(self.markers.mark, offset_event)
-                    frame_flip_times.append(float(self.win.flip()))
-                finally:
-                    self.win.recordFrameIntervals = False
-                if onset_event.timestamp is None or offset_event.timestamp is None:
-                    raise RuntimeFault("DISPLAY", "模式选择刺激事件标记缺失")
-                if self.markers.error is not None:
-                    raise RuntimeFault("LSL_CONNECTION", f"LSL Marker发送失败：{self.markers.error}")
-
-                cancel = threading.Event()
-                self._active_decode_cancel = cancel
-                self._decode_future = self.executor.submit(
-                    decode_trial, trial_id, onset_event.timestamp, self.collector,
-                    self.cfg, cancel)
-                while (not self._decode_future.done()
-                       or self.clock() < offset_event.timestamp + self.cfg.blank_min_s):
-                    self._check_abort()
-                    self._draw_mode_menu()
-                    self.win.flip()
-                try:
-                    result = self._decode_future.result()
-                except InvalidTrial as exc:
-                    self._decode_future = None
-                    self._active_decode_cancel = None
-                    self.mode_status.text = f"Selection failed: {exc}. Retrying..."
-                    retry_started = self.clock()
-                    while self.clock() - retry_started < self.cfg.feedback_s:
-                        self._check_abort()
-                        self._draw_mode_menu()
-                        self.win.flip()
-                    continue
-                self._decode_future = None
-                self._active_decode_cancel = None
-                selected = int(result["prediction"]) - 1
-                if selected >= len(MODE_FREQUENCIES_HZ):
-                    continue
-                selected_started = self.clock()
-                while self.clock() - selected_started < self.cfg.feedback_s:
-                    self._check_abort()
-                    self._draw_mode_menu(selected=selected)
-                    self.win.flip()
-                print(f"\nSelected by SSVEP: {MODE_NAMES[selected]} ({MODE_FREQUENCIES_HZ[selected]:.1f} Hz)",
-                      flush=True)
-                return ("wheelchair", "arm", "chatbox")[selected]
-        finally:
-            self._cancel_decode()
-            self.collector.decoder = previous_decoder
+        self.mode_status.text = ""
+        self.event.getKeys(keyList=["escape"])
+        selected, _ = self._select_by_windows(
+            "mode_stimulus_onset", 0, (*MODE_FREQUENCIES_HZ, *MODE_DECOYS_HZ), MODE_FREQUENCIES_HZ,
+            lambda frame: self._draw_mode_menu(selected=self._live_candidate, flicker_rgb=frame),
+            "optional")
+        started = self.clock()
+        while self.clock() - started < self.cfg.feedback_s:
+            self._check_abort()
+            self._draw_mode_menu(selected=selected)
+            self.win.flip()
+        print(f"\nSelected by SSVEP: {MODE_NAMES[selected]} ({MODE_FREQUENCIES_HZ[selected]:.1f} Hz)",
+              flush=True)
+        return ("wheelchair", "arm", "chatbox")[selected]
 
     def run(self) -> str:
         """显示菜单并运行所选模式，返回结束原因。"""
@@ -1337,31 +1328,10 @@ class PsychoPyKeyboard:
                     self._read_reply_aloud()
                 if page == 1:
                     self._refresh_suggestions()
-                frequencies = self._chatbox_page_frequencies(page)
-                from .decoding import FbccaDecoder
-                self.collector.decoder = FbccaDecoder(self.cfg,
-                                                      target_frequencies_hz=frequencies)
-                try:
-                    symbol, result = self._run_chatbox_selection(page, selection_id)
-                except InvalidTrial as exc:
-                    self.mode_status.text = f"ChatBox selection failed: {exc}. Retrying..."
-                    if self.cfg.chatbox_speak_selections:
-                        self._speak("Not recognised. Try again.")
-                    retry_started = self.clock()
-                    while self.clock() - retry_started < self.cfg.feedback_s:
-                        self._check_abort()
-                        self._draw_chatbox_keyboard(page)
-                        self.win.flip()
+                outcome = self._run_chatbox_selection(page, selection_id)
+                if outcome is None:
                     continue
-                accepted, gate = self._chatbox_gate(result)
-                if not accepted:
-                    # Probably not looking at the keyboard: type nothing, stay quiet.
-                    self._persist_chatbox_selection(selection_id, symbol, result,
-                                                    rejected_reason=gate["reason"])
-                    self.markers.mark(EventStamp("selection_end", selection_id, None, {
-                        "mode": "chatbox", "page": page, "action": symbol, "status": "rejected",
-                        "max_score": gate["max_score"], "alpha_ratio": gate["alpha_ratio"]}))
-                    continue
+                symbol, result = outcome
                 record = self._persist_chatbox_selection(selection_id, symbol, result)
                 try:
                     self.markers.mark(EventStamp("selection_end", selection_id, None,
@@ -1483,30 +1453,15 @@ class PsychoPyKeyboard:
                                        else tuple(map(float, flicker_rgb[0, :3])))
         self.arm_menu_key.draw()
         self.arm_menu_label.draw()
+        if self._live_candidate == 0:
+            self.arm_menu_outline.draw()
 
     def _run_arm(self) -> str:
         """模式2（机械臂）尚未实现：只能注视 MENU 返回菜单。"""
-        from .decoding import FbccaDecoder
-        selection_id = max(self.ledger.ids, default=0)
-        previous_decoder = getattr(self.collector, "decoder", None)
-        self.collector.decoder = FbccaDecoder(self.cfg, target_frequencies_hz=(ARM_MENU_HZ, *ARM_DECOYS_HZ))
         self.win.color = CHAT_BG
-        frames = self.arm_rgb_frames
-        try:
-            round_id = 0
-            while True:
-                round_id += 1
-                onset = EventStamp("arm_stimulus_onset", round_id, details={"menu_hz": ARM_MENU_HZ})
-                try:
-                    result = self._present_and_decode(selection_id + round_id, frames, onset,
-                                                      lambda frame: self._draw_arm(frame), self._draw_arm)
-                except InvalidTrial:
-                    continue
-                if int(result["prediction"]) == 1:
-                    return "RETURN_TO_MODE_MENU"
-        finally:
-            self._cancel_decode()
-            self.collector.decoder = previous_decoder
+        self._select_by_windows("arm_stimulus_onset", 0, (ARM_MENU_HZ, *ARM_DECOYS_HZ), (ARM_MENU_HZ,),
+                                lambda frame: self._draw_arm(frame), "optional")
+        return "RETURN_TO_MODE_MENU"
 
     def _build_chair_visuals(self, width: float, height: float,
                              ui_scale: float, menu_font: str) -> None:
@@ -1551,9 +1506,13 @@ class PsychoPyKeyboard:
             height=height * .045, font=menu_font, color=CHAT_TEXT, bold=True, autoLog=False)
         self._show_chair_state()
 
-    def _show_chair_state(self) -> None:
-        """更新顶部状态条；只在命令变化时调用，避免闪烁期间反复生成文字纹理。"""
+    def _show_chair_state(self, confirming: Optional[str] = None) -> None:
+        """更新顶部状态条；只在状态变化时调用，避免闪烁期间反复生成文字纹理。"""
         moving = self._chair_state != "STOP"
+        if confirming is not None:
+            self.chair_state_box.fillColor = CHAIR_STATE_CONFIRM
+            self.chair_state_text.text = f"CONFIRM {confirming}"
+            return
         self.chair_state_box.fillColor = CHAIR_STATE_MOVING if moving else CHAIR_STATE_STOPPED
         self.chair_state_text.text = f"MOVING {self._chair_state}" if moving else "STOPPED"
 
@@ -1573,7 +1532,8 @@ class PsychoPyKeyboard:
         self._chair_state = command
         if changed:
             self._show_chair_state()
-        if self.markers is not None:
+        # Direction repeats every window as a heartbeat; only log changes and stops.
+        if self.markers is not None and (changed or command == "STOP"):
             self.markers.mark(EventStamp("wheelchair_command", selection_id, details={"command": command}))
 
     def _draw_chair(self, flicker_rgb: Optional[np.ndarray] = None,
@@ -1585,7 +1545,9 @@ class PsychoPyKeyboard:
         self.chair_state_box.draw()
         self.chair_state_text.draw()
         for index, key in enumerate(self.chair_keys):
-            if flicker_rgb is None:
+            if self._chair_active is not None and key["symbol"] not in self._chair_active:
+                key["square"].fillColor = CHAIR_KEY_PAUSED
+            elif flicker_rgb is None:
                 key["square"].fillColor = key["face"]
             else:
                 key["square"].fillColor = tuple(map(float, flicker_rgb[index, :3]))
@@ -1596,71 +1558,103 @@ class PsychoPyKeyboard:
             if key["symbol"] == selected:
                 key["border"].draw()
 
-    def _chair_gate(self, result: dict[str, Any]) -> tuple[bool, Optional[dict[str, Any]]]:
-        """方向命令必须通过拒识门控；阈值未配置时一律不接受。"""
-        if not self.cfg.rejection_thresholds_configured:
-            return False, None
-        diagnostics = self._rejection_diagnostics(result)
-        return bool(diagnostics["accepted"]), diagnostics
-
     def _persist_chair_selection(self, selection_id: int, symbol: str, command: str,
                                  result: dict[str, Any],
                                  gate: Optional[dict[str, Any]]) -> None:
         """保存本轮 EEG 和决定；轮椅命令不写入文字，因此记录状态为 rejected。"""
+        # A cycle can log several actions; ids stay unique within the session.
+        selection_id = max(selection_id, max(self.ledger.ids, default=0) + 1)
         record = TrialRecord(selection_id, 1, None, mode="free", start=self.clock())
         record.result = dict(result, rejection_diagnostics=gate)
         record.status = "rejected"
-        record.reason = f"Wheelchair: recognised {symbol}, action {command}"
+        record.reason = f"Wheelchair: target {symbol}, action {command}"
         record.end = self.clock()
         self._phase(record, "COMPLETE")
         self.ledger.commit(record)
         self._persist_trial(record)
         self._release_free_eeg(record)
 
+    def _chair_cycle(self, selection_id: int) -> str:
+        """运行一次“选择、确认、行驶”；返回 STOP、STOPPED、CANCELLED 或 MENU。"""
+        cfg = self.cfg
+        vote = SelectionVote(cfg.selection_hold_windows, cfg.score_ema)
+        machine = ChairStateMachine(vote, settle_s=cfg.chair_confirm_settle_s,
+                                    confirm_timeout_s=cfg.chair_confirm_timeout_s,
+                                    watchdog_s=cfg.chair_watchdog_s)
+        frequencies = tuple(CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS)
+        self._chair_stop_pressed = False
+
+        def sync_display(before_phase: str) -> None:
+            """阶段变化时更新闪烁的键和状态条。"""
+            if machine.phase == before_phase:
+                return
+            self._chair_active = machine.active_keys()
+            self._show_chair_state(machine.target if machine.phase == machine.CONFIRM else None)
+
+        def apply(command: Optional[str], outcome: Optional[str], result: Optional[dict[str, Any]],
+                  before_phase: str) -> Optional[str]:
+            if command is not None:
+                self._chair_send(command, selection_id)
+            sync_display(before_phase)
+            if result is not None and (outcome is not None or machine.phase != before_phase):
+                self._persist_chair_selection(selection_id, machine.target or "", command or machine.phase,
+                                              result, None)
+            return outcome
+
+        def on_window(result: Optional[dict[str, Any]]) -> Optional[str]:
+            before = machine.phase
+            candidate = None
+            if result is not None:
+                index = self._window_candidate(vote, result, "required", len(CHAIR_SYMBOLS))
+                candidate = None if index is None else CHAIR_SYMBOLS[index]
+                self._live_candidate = index
+            else:
+                self._live_candidate = None
+            command, outcome = machine.step(candidate, self.clock())
+            return apply(command, outcome, result, before)
+
+        def on_frame() -> Optional[str]:
+            before = machine.phase
+            if self._chair_stop_pressed:
+                self._chair_stop_pressed = False
+                command, outcome = machine.stop_pressed()
+            else:
+                command, outcome = machine.tick(self.clock())
+            return apply(command, outcome, None, before)
+
+        try:
+            return self._flicker_until(
+                "wheelchair_stimulus_onset", selection_id, frequencies, frequencies,
+                lambda frame: self._draw_chair(flicker_rgb=frame,
+                    selected=None if self._live_candidate is None else CHAIR_SYMBOLS[self._live_candidate]),
+                on_window, on_frame, lambda: machine.window_floor)
+        finally:
+            self._chair_active = None
+            self._show_chair_state()
+
     def _run_wheelchair(self) -> str:
-        """模式1：逐轮识别方向；不确定、出错或离开时都发送 STOP。"""
-        from .decoding import FbccaDecoder
+        """模式1：滑动窗口识别，方向键二次确认；不确定、出错或离开时都发送 STOP。"""
         selection_id = max(self.ledger.ids, default=0)
-        previous_decoder = getattr(self.collector, "decoder", None)
-        self.collector.decoder = FbccaDecoder(self.cfg, target_frequencies_hz=tuple(
-            CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS))
         self.win.color = CHAT_BG
         self.event.getKeys(keyList=["space"])
         try:
             self._chair_send("STOP", selection_id)
             while True:
-                selection_id += 1
+                selection_id = max(selection_id, max(self.ledger.ids, default=0)) + 1
                 self._graphics_gc.collect(self.win)
-                self._chair_stop_pressed = False
-                onset = EventStamp("wheelchair_stimulus_onset", selection_id, details={
-                    "symbols": list(CHAIR_SYMBOLS),
-                    "frequencies_hz": [CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS]})
-                try:
-                    result = self._present_and_decode(
-                        selection_id, self.chair_rgb_frames, onset,
-                        lambda frame: self._draw_chair(flicker_rgb=frame), self._draw_chair)
-                except InvalidTrial as exc:
-                    print(f"[轮椅] 本轮无效，已停止：{exc}", flush=True)
-                    self._chair_send("STOP", selection_id)
-                    continue
-                prediction = int(result["prediction"])
-                if not 1 <= prediction <= len(CHAIR_SYMBOLS):
-                    raise InvalidTrial(f"轮椅预测类别超出范围：{prediction}")
-                symbol = CHAIR_SYMBOLS[prediction - 1]
-                accepted, gate = self._chair_gate(result)
-                action = chair_decision(symbol, accepted, self._chair_stop_pressed)
-                self._persist_chair_selection(selection_id, symbol, action, result, gate)
-                self._chair_send("STOP" if action == "MENU" else action, selection_id)
+                outcome = self._chair_cycle(selection_id)
+                self._chair_send("STOP", selection_id)
+                highlight = {"STOP": "STOP", "STOPPED": "STOP", "MENU": "MENU"}.get(outcome)
                 started = self.clock()
                 while self.clock() - started < self.cfg.chatbox_feedback_s:
                     self._check_abort()
-                    self._draw_chair(selected=action if accepted else None)
+                    self._draw_chair(selected=highlight)
                     self.win.flip()
-                if action == "MENU":
+                if outcome == "MENU":
                     return "RETURN_TO_MODE_MENU"
         finally:
             self._cancel_decode()
-            self.collector.decoder = previous_decoder
+            self._chair_active = None
             try:
                 self._chair_send("STOP", selection_id)
             except Exception as exc:

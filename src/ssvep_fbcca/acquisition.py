@@ -442,11 +442,11 @@ class ContinuousLSL:
                 if time.monotonic() - self.last_arrival > self.cfg.max_receive_age_s:
                     raise RuntimeFault("ACQUISITION", "EEG流停止发送，已停止实验")
 
-    def wait_epoch(self, onset: float, cancel: threading.Event) -> Epoch:
+    def wait_epoch(self, onset: float, cancel: threading.Event, window_s: float) -> Epoch:
         """等待目标事件窗到齐，随后返回经过时间轴校验的事件窗。"""
         assert self.buffer is not None
         start = onset + self.cfg.response_delay_s
-        end = start + self.cfg.window_s
+        end = start + window_s
         deadline = time.monotonic() + self.cfg.data_wait_timeout_s
         while self.buffer.latest < end:
             if cancel.is_set():
@@ -457,7 +457,7 @@ class ContinuousLSL:
             cancel.wait(.01)
         self.check_health()
         return self.buffer.epoch(
-            start, self.cfg.window_s, self.fs, self.cfg.max_gap_factor,
+            start, window_s, self.fs, self.cfg.max_gap_factor,
             self.cfg.rate_tolerance, self.cfg.hard_gap_factor,
             self.cfg.hard_rate_tolerance, self.cfg.max_warning_gaps)
 
@@ -484,7 +484,7 @@ class ContinuousLSL:
 def decode_trial(trial_id: int, onset: float, collector: EegSource, cfg: Config,
                  cancel: threading.Event) -> dict:
     """分类工作线程；函数签名有意不包含真实类别。"""
-    epoch = collector.wait_epoch(onset, cancel)
+    epoch = collector.wait_epoch(onset, cancel, cfg.window_s)
     if cancel.is_set():
         raise AbortSession("已取消分类")
     if cfg.input_unit == "AUTO":

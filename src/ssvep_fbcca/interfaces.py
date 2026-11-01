@@ -26,7 +26,7 @@ class EegSource(Protocol):
     clock: Any
     error: Any
 
-    def wait_epoch(self, onset: float, cancel: threading.Event) -> Any:
+    def wait_epoch(self, onset: float, cancel: threading.Event, window_s: float) -> Any:
         ...
 
     def check_health(self) -> None:

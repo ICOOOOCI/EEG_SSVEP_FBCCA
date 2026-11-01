@@ -40,6 +40,7 @@ from .analysis import (
 )
 from .ui import MainThreadGraphicsGC, PsychoPyKeyboard
 from .wheelchair import WHEELCHAIR_COMMANDS, WheelchairPort
+from .selection import ChairStateMachine, SelectionVote
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 from .voice import Speaker, make_speaker
 from .app import cli, main, observe_lsl_timing, static_ui_self_test
@@ -63,5 +64,5 @@ __all__ = [
     "summarize_free_trials", "MainThreadGraphicsGC",
     "PsychoPyKeyboard", "cli", "main",
     "observe_lsl_timing", "static_ui_self_test", "ChatBackendError", "ChatMessage",
-    "DeepSeekChatBackend", "Speaker", "make_speaker", "WHEELCHAIR_COMMANDS", "WheelchairPort",
+    "DeepSeekChatBackend", "Speaker", "make_speaker", "WHEELCHAIR_COMMANDS", "WheelchairPort", "ChairStateMachine", "SelectionVote",
 ]
