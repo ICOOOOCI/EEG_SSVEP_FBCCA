@@ -7,17 +7,26 @@ deepseek_api_key_env = "DEEPSEEK_API_KEY"
 deepseek_timeout_s = 60.0
 # 系统提示词默认值见 config.py（面向 ALS/BCI 用户）；如需替换可在此填写单行字符串：
 # deepseek_system_prompt = "..."
-# 主菜单、模式1、模式2的滑动窗口。窗长改变后分数范围会变，分数和分差阈值要一起调整。
-window_s = 2.5
+# 保留2026-10-21末提交675db9a的FBCCA参数，分析窗按当前要求统一为5秒。
+window_s = 5.0
 decode_step_s = 0.25
 score_ema = 1.0
-selection_hold_windows = 4
-# 模式3（34键）使用更长的窗口和自己的阈值。
-chat_window_s = 3.5
-chat_score_ema = 0.5
-chat_hold_windows = 2
-chat_min_score = 0.40
-chat_min_margin = 0.10
+# 每个有效窗口直接选中，不做连续窗口计数。
+# 模式3两页均使用5秒分析窗，不叠加跨窗平滑。
+chat_window_s = 5.0
+chat_number_window_s = 5.0
+chat_score_ema = 1.0
+chat_min_score = 0.25934562367893293
+# 第一/第二名分差门槛：分差不足时继续闪烁、等下一个滑动窗口，而不是直接选中。
+chat_min_margin = 0.05
+# 每轮闪烁开始后忽略的秒数，留给用户把视线移到下一个键。
+chat_gaze_shift_s = 1.0
+# 按频率的分数归一化（由 2026-11-03 模式3采集生成）。文件可用且解码参数一致时，
+# 模式3按 z 分数选键：最高 z >= chat_norm_min_z 且领先第二名 >= chat_norm_min_margin。
+# 换电极位置或新采集后，用 python -m ssvep_fbcca.score_norm 重新生成。
+chat_score_norm_file = "config/chat_score_norm_P01.json"
+chat_norm_min_z = 4.0
+chat_norm_min_margin = 0.5
 chair_confirm_settle_s = 0.45
 chair_confirm_timeout_s = 7.0
 chair_watchdog_s = 1.0
@@ -37,19 +46,31 @@ warmup_s = 10.0
 [decoder]
 target_fs = 250.0
 n_harmonics = 3
+# 各界面均恢复3次谐波、原五子带和原权重。
+menu_n_harmonics = 3
+chair_n_harmonics = 3
+chat_n_harmonics = 3
+chat_weight_a = 1.25
+chat_weight_b = 0.25
+chat_cca_regularization = 1e-10
+chat_letter_filter_bands_hz = [[6.0, 90.0], [14.0, 90.0], [22.0, 90.0], [30.0, 90.0], [38.0, 90.0]]
+chat_number_filter_bands_hz = [[6.0, 90.0], [14.0, 90.0], [22.0, 90.0], [30.0, 90.0], [38.0, 90.0]]
 weight_a = 1.25
 weight_b = 0.25
 notch_hz = 50.0
 cca_regularization = 1e-10
+# 可选：自定义 FBCCA 子带；省略时仍用原来的五子带。
+# 谐波数可调整，但所有候选频率的最高参考谐波必须低于处理采样率的 Nyquist。
+# 以下只是参数格式示例，未经独立验证不得当成优化结论：
+# fbcca_filter_bands_hz = [[6.0, 48.0], [14.0, 48.0], [22.0, 48.0]]
 
 [rejection]
-# Offline sweep of the 2026-10-19 session with idle false selections limited to 1/min (one
-# session, one person). The alpha limit is from the 5 s calibration. Mode 3 uses chat_min_*.
+# 恢复2026-10-21启动配置中的拒识阈值；未在当前UI上重新标定。
 rejection_enabled = true
-rejection_min_score = 0.40
-rejection_min_margin = 0.10
+rejection_min_score = 0.25934562367893293
+rejection_min_margin = 0.0
 rejection_max_alpha_ratio = 2.7631716193293068
-rejection_calibration_id = "offline_20261019_sliding_window_sweep"
+rejection_calibration_id = "offline_20261019_target12_screen_around_eyes"
 
 [chatbox]
 # 模式三无障碍：朗读回复与语音提示、语速(-10..10)、语音确认所选键、
@@ -75,4 +96,8 @@ full_screen = true
 screen_index = 0
 window_size = [1280, 800]
 viewing_distance_cm = 70.0
+screen_diagonal_inches = 13.0
+# 可配置的设计起点；空间不足时按同一比例缩小，并把实际角度写入显示元数据。
+stimulus_size_deg = 4.0
+stimulus_center_pitch_deg = 6.0
 

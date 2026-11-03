@@ -70,6 +70,9 @@ class Config:
         for name in ("channel_indices", "channel_positions", "window_size"):
             if isinstance(values.get(name), list):
                 values[name] = tuple(values[name])
+        for name in ("fbcca_filter_bands_hz", "chat_letter_filter_bands_hz", "chat_number_filter_bands_hz"):
+            if values.get(name) is not None:
+                values[name] = tuple(tuple(band) for band in values[name])
         cfg = cls(**values)
         cfg.validate()
         return cfg
@@ -101,18 +104,27 @@ class Config:
     chatbox_prediction_wait_s: float = 1.0      # 每轮开始前最多等待 DeepSeek 候选的时间
     # 不打算输入时的保护：复用 rejection_* 阈值拦截低置信轮次。
     chatbox_rejection_enabled: bool = True
-    # 主菜单、模式1、模式2的滑动窗口：窗长、识别间隔、分数平滑权重（1表示不平滑）、
-    # 选中所需的连续有效窗口数。
-    window_s: float = 2.5
+    # 滑动窗口：窗长、识别间隔、分数平滑权重（1表示不平滑）。
+    # 各界面每个有效窗口直接选中，不做连续窗口计数。
+    window_s: float = 5.0
     decode_step_s: float = 0.25
     score_ema: float = 1.0
-    selection_hold_windows: int = 4
-    # 模式3（34键）的滑动窗口和拒识阈值；窗长改变后分数范围会变，阈值要一起调整。
-    chat_window_s: float = 3.5
-    chat_score_ema: float = 0.5
-    chat_hold_windows: int = 2
-    chat_min_score: float = 0.40
-    chat_min_margin: float = 0.10
+    # 模式3两页独立窗口；chat_window_s 保留为字母页字段名。
+    # 保留2026-10-21末版本（675db9a）的算法和拒识阈值，分析窗按要求统一为5秒。
+    chat_window_s: float = 5.0
+    chat_number_window_s: float = 5.0
+    chat_score_ema: float = 1.0
+    chat_min_score: float = 0.25934562367893293
+    # 第一/第二名分差门槛。2026-10-19 提示式数据（40 类，5 s 窗）：0 时放行窗口中 71% 正确，
+    # 0.05 时 88% 正确；被拒的窗口不丢弃本轮，只是等后续滑动窗口。
+    chat_min_margin: float = 0.05
+    # 每轮闪烁开始后先留给用户移动视线的时间；这段 EEG 不进入任何分析窗。
+    chat_gaze_shift_s: float = 1.0
+    # 按频率的分数归一化文件（python -m ssvep_fbcca.score_norm 生成）。可用时模式3改按
+    # z 分数选键，并用下面两个 z 门槛代替 chat_min_score/chat_min_margin。
+    chat_score_norm_file: Optional[str] = None
+    chat_norm_min_z: float = 4.0
+    chat_norm_min_margin: float = 0.5
     # 模式1方向键的二次确认及行驶看门狗。
     chair_confirm_settle_s: float = 0.45
     chair_confirm_timeout_s: float = 7.0
@@ -172,10 +184,25 @@ class Config:
 
     target_fs: float = 250.0
     n_harmonics: int = 3
+    # 保留分界面配置接口，各界面默认恢复2026-10-21的3谐波、5子带FBCCA。
+    menu_n_harmonics: int = 3
+    chair_n_harmonics: int = 3
+    chat_n_harmonics: int = 3
+    chat_weight_a: float = 1.25
+    chat_weight_b: float = 0.25
+    chat_cca_regularization: float = 1e-10
+    chat_letter_filter_bands_hz: tuple[tuple[float, float], ...] = (
+        (6., 90.), (14., 90.), (22., 90.), (30., 90.), (38., 90.))
+    chat_number_filter_bands_hz: tuple[tuple[float, float], ...] = (
+        (6., 90.), (14., 90.), (22., 90.), (30., 90.), (38., 90.))
     weight_a: float = 1.25
     weight_b: float = 0.25
     notch_hz: Optional[float] = 50.0
+    # 10月21日实现保留的可选工频回归，原启动配置未启用。
+    line_regression_hz: Optional[float] = None
     cca_regularization: float = 1e-10
+    # None 保持原来的 M3 五子带；显式配置时允许离线验证其他 FBCCA 频带。
+    fbcca_filter_bands_hz: Optional[tuple[tuple[float, float], ...]] = None
     participant_id: Optional[str] = None
     rejection_calibration_id: Optional[str] = None
 
@@ -184,6 +211,8 @@ class Config:
     window_size: tuple[int, int] = (1920, 1080)
     viewing_distance_cm: float = 70.0
     screen_diagonal_inches: Optional[float] = None
+    stimulus_size_deg: float = 4.0
+    stimulus_center_pitch_deg: float = 6.0
     frame_long_factor: float = 1.5
     frame_short_factor: float = 0.5
     frame_rate_tolerance: float = 0.005
@@ -200,17 +229,39 @@ class Config:
         return max(self.warmup_s, 2.1)
 
     @property
+    def menu_profile(self) -> "Config":
+        """仅主菜单覆盖谐波数，不修改共享配置。"""
+        return replace(self, n_harmonics=self.menu_n_harmonics)
+
+    @property
+    def chair_profile(self) -> "Config":
+        """模式1独立的谐波数；窗口和门控沿用原设置。"""
+        return replace(self, n_harmonics=self.chair_n_harmonics)
+
+    @property
     def chat_profile(self) -> "Config":
-        """返回模式3使用的窗口和阈值；其他配置与主配置相同。"""
-        return replace(self, window_s=self.chat_window_s, score_ema=self.chat_score_ema,
-                       selection_hold_windows=self.chat_hold_windows,
+        """兼容旧接口：返回模式3字母页配置；实时两页使用 chat_page_profile。"""
+        return self.chat_page_profile(1)
+
+    def chat_page_profile(self, page: int) -> "Config":
+        """按当前页面生成独立解码配置，切页不会修改共享配置。"""
+        if isinstance(page, bool) or page not in (1, 2):
+            raise ValueError("ChatBox page 必须为1（字母）或2（数字）")
+        return replace(self, n_harmonics=self.chat_n_harmonics,
+                       window_s=self.chat_window_s if page == 1 else self.chat_number_window_s,
+                       fbcca_filter_bands_hz=(self.chat_letter_filter_bands_hz if page == 1 else
+                                              self.chat_number_filter_bands_hz),
+                       weight_a=self.chat_weight_a, weight_b=self.chat_weight_b,
+                       cca_regularization=self.chat_cca_regularization,
+                       score_ema=self.chat_score_ema,
                        rejection_min_score=self.chat_min_score,
                        rejection_min_margin=self.chat_min_margin)
 
     @property
     def filter_bands(self) -> tuple[tuple[float, float], ...]:
         """返回 FBCCA 使用的滤波器组频带。"""
-        return M3_5_BANDS
+        return (M3_5_BANDS if self.fbcca_filter_bands_hz is None else
+                tuple(tuple(band) for band in self.fbcca_filter_bands_hz))
 
     @property
     def rejection_thresholds_configured(self) -> bool:
@@ -271,10 +322,14 @@ class Config:
         for name in ("score_ema", "chat_score_ema"):
             if not 0 < getattr(self, name) <= 1:
                 raise ValueError(f"{name} 必须在(0, 1]内")
-        for name in ("window_s", "chat_window_s"):
+        for name in ("window_s", "chat_window_s", "chat_number_window_s"):
             if not math.isfinite(getattr(self, name)) or getattr(self, name) <= 0:
                 raise ValueError(f"{name} 必须为有限正数")
-        for name in ("chat_min_score", "chat_min_margin"):
+        if self.chat_score_norm_file is not None and (
+                not isinstance(self.chat_score_norm_file, str) or not self.chat_score_norm_file.strip()):
+            raise ValueError("chat_score_norm_file 必须是非空路径或空值")
+        for name in ("chat_min_score", "chat_min_margin", "chat_gaze_shift_s",
+                     "chat_norm_min_z", "chat_norm_min_margin"):
             if not math.isfinite(getattr(self, name)) or getattr(self, name) < 0:
                 raise ValueError(f"{name} 必须非负且有限")
         for name in ("decode_step_s", "chair_confirm_timeout_s", "chair_watchdog_s"):
@@ -282,7 +337,8 @@ class Config:
                 raise ValueError(f"{name} 必须为有限正数")
         if not math.isfinite(self.chair_confirm_settle_s) or self.chair_confirm_settle_s < 0:
             raise ValueError("chair_confirm_settle_s 必须非负且有限")
-        for name in ("n_harmonics", "min_valid_channels", "selection_hold_windows", "chat_hold_windows"):
+        for name in ("n_harmonics", "menu_n_harmonics", "chair_n_harmonics", "chat_n_harmonics",
+                     "min_valid_channels"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise ValueError(f"{name} 必须是正整数")
@@ -299,6 +355,10 @@ class Config:
         if self.screen_diagonal_inches is not None and (
                 not math.isfinite(self.screen_diagonal_inches) or self.screen_diagonal_inches <= 0):
             raise ValueError("screen_diagonal_inches 必须为空或有限正数")
+        if not (math.isfinite(self.stimulus_size_deg)
+                and math.isfinite(self.stimulus_center_pitch_deg)
+                and 0 < self.stimulus_size_deg < self.stimulus_center_pitch_deg < 90):
+            raise ValueError("刺激视觉角度须满足 0 < size < center_pitch < 90")
         if not 1 < self.max_gap_factor < 2:
             raise ValueError("max_gap_factor 必须在1和2之间，不得跨明确缺样插值")
         if not (1 < self.frame_long_factor < 2 and 0 < self.frame_short_factor < 1):
@@ -353,29 +413,38 @@ class Config:
                 and (not math.isfinite(self.rejection_max_alpha_ratio)
                      or self.rejection_max_alpha_ratio <= 0)):
             raise ValueError("rejection_max_alpha_ratio 必须为正且有限")
-        band_high = max(high for _, high in self.filter_bands)
-        _validate_fs(self.target_fs, band_high)
-        if self.n_harmonics != 3:
-            raise ValueError("FBCCA 5子带方案必须使用 n_harmonics=3")
+        _validate_filter_bands(self.filter_bands, self.target_fs, self.target_fs)
+        for bands in (self.chat_letter_filter_bands_hz, self.chat_number_filter_bands_hz):
+            _validate_filter_bands(bands, self.target_fs, self.target_fs)
+        band_high = max(high for bands in (self.filter_bands, self.chat_letter_filter_bands_hz,
+                                           self.chat_number_filter_bands_hz) for _, high in bands)
+        for name in ("weight_a", "weight_b", "cca_regularization", "chat_weight_a", "chat_weight_b",
+                     "chat_cca_regularization"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} 必须非负且有限")
         _normalise_channel_indices(self.channel_indices)
         if len(self.channel_indices) != len(self.channel_positions):
             raise ValueError("channel_indices 和 channel_positions 数量必须一致")
         if not 1 <= self.min_valid_channels <= len(self.channel_indices):
             raise ValueError("min_valid_channels 超出所选通道数")
-        if self.buffer_s <= max(self.window_s, self.chat_window_s) + self.response_delay_s + self.data_wait_timeout_s + 2:
+        if self.buffer_s <= max(self.window_s, self.chat_window_s, self.chat_number_window_s) + self.response_delay_s + self.data_wait_timeout_s + 2:
             raise ValueError("内存缓冲区过短，可能覆盖仍待分类的 EEG")
         _validate_harmonics(self.n_harmonics, BENCHMARK_FREQUENCIES_HZ, self.target_fs)
+        _validate_line_regression_hz(self.line_regression_hz, self.target_fs)
+        for name in ("menu_n_harmonics", "chair_n_harmonics", "chat_n_harmonics"):
+            _validate_harmonics(getattr(self, name), BENCHMARK_FREQUENCIES_HZ, self.target_fs)
         if self.upstream_lowpass_hz is not None:
             if not math.isfinite(self.upstream_lowpass_hz) or self.upstream_lowpass_hz < band_high:
                 raise ValueError(f"已知发布端低通小于{band_high:g} Hz，不能使用当前频带")
 
 CONFIG = Config(
-    # 分数和分差由2026-10-19会话的2.5秒滑动窗口离线扫描得到；模式3见 chat_min_*。
+    # 与2026-10-21启动配置一致；旧阈值不构成对当前界面的新验证。
     rejection_enabled=True,
-    rejection_min_score=0.40,
-    rejection_min_margin=0.10,
+    rejection_min_score=0.25934562367893293,
+    rejection_min_margin=0.0,
     rejection_max_alpha_ratio=2.7631716193293068,
-    rejection_calibration_id="offline_20261019_sliding_window_sweep",
+    rejection_calibration_id="offline_20261019_target12_screen_around_eyes",
 )
 
 @dataclass(frozen=True)
@@ -416,7 +485,7 @@ BENCHMARK_FREQUENCIES_HZ = np.asarray([t.frequency_hz for t in TARGETS])
 
 M3_5_BANDS = tuple((float(8 * n - 2), 90.0) for n in range(1, 6))
 
-DEFAULT_WINDOW_S = 2.0
+DEFAULT_WINDOW_S = 5.0
 
 TARGET_FS = 250.0
 
@@ -462,6 +531,16 @@ def _validate_harmonics(n: int, frequencies: np.ndarray, fs: float) -> None:
         raise ValueError("谐波数必须为正整数")
     if not np.isfinite(fs) or fs <= 0 or np.max(frequencies) * n >= fs / 2:
         raise ValueError("最高参考谐波必须低于Nyquist频率")
+
+
+def _validate_line_regression_hz(value: Optional[float], fs: float) -> None:
+    """验证10月21日FBCCA实现中的可选工频回归频率。"""
+    if value is None:
+        return
+    if (isinstance(value, (bool, np.bool_))
+            or not isinstance(value, (int, float, np.integer, np.floating))
+            or not np.isfinite(value) or not 0 < value < fs / 2):
+        raise ValueError("line_regression_hz须为None或低于Nyquist频率的有限正数")
 
 
 

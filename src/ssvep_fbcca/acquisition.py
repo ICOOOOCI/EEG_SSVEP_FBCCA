@@ -6,7 +6,19 @@ from .signal import *
 from .interfaces import EegSource
 
 
-
+def _timebase_mismatch_message(nominal_fs: float, measured_fs: float,
+                               hard_tolerance: float) -> Optional[str]:
+    """检查声明速率与时间戳到样速率的一致性，不把后者当作ADC采样率。"""
+    if (not np.isfinite([nominal_fs, measured_fs, hard_tolerance]).all()
+            or nominal_fs <= 0 or measured_fs <= 0 or hard_tolerance < 0):
+        raise ValueError("采样时间轴检查参数必须有限且有效")
+    error = abs(measured_fs / nominal_fs - 1)
+    if error <= hard_tolerance + 1e-12:
+        return None
+    return (f"LSL采样时间轴不一致：声明{nominal_fs:g}Hz，时间戳推算{measured_fs:.3f}Hz，"
+            f"偏差{error:.2%}超过配置上限{hard_tolerance:.2%}；拒绝分类。"
+            "请核对第三方设备实际采样率、GUI设备设置及LSL发布，重启数据流后复查。"
+            "此处推算值不是硬件ADC采样率，不能直接据此修改设备采样率。")
 @dataclass
 class Epoch:
     """保存一个对齐后的 EEG 事件窗及其源时间轴和诊断信息。"""
@@ -166,6 +178,7 @@ class MNEStreamWindow:
             "expected_uniform_samples": sample_count(duration_s, nominal_fs),
             "rate_warning_tolerance": float(rate_tolerance),
             "rate_hard_tolerance": float(hard_rate_tolerance),
+            "rate_mismatch_handling": "reject_above_hard_tolerance",
         }
         def failure_epoch(message: str) -> Epoch:
             """构造保留源数据和失败诊断的空事件窗。"""
@@ -213,9 +226,10 @@ class MNEStreamWindow:
         )
         maximum_rate_error = max(local_rate_error, source_rate_error)
         if maximum_rate_error > hard_rate_tolerance:
-            warnings.append(
-                f"时间戳采样率偏差较大但仅警告：source={source_measured_fs:.3f}Hz, "
-                f"local={measured_fs:.3f}Hz, declared={nominal_fs:g}Hz")
+            worse_fs = max((measured_fs, source_measured_fs), key=lambda value: abs(value / nominal_fs - 1))
+            message = _timebase_mismatch_message(nominal_fs, worse_fs, hard_rate_tolerance)
+            if message is not None:
+                raise InvalidTrial(message, epoch=failure_epoch(message), code="TIMEBASE")
         elif maximum_rate_error > rate_tolerance:
             warnings.append(
                 f"时间戳采样率轻微偏差：source={source_measured_fs:.3f}Hz, local={measured_fs:.3f}Hz")
@@ -243,7 +257,7 @@ class MNEStreamWindow:
             "warnings": warnings,
             "warning_gap_count": warning_gap_count,
             "hard_gap_count": hard_gap_count,
-            "rate_mismatch_handling": "warning_only",
+            "rate_mismatch_handling": "reject_above_hard_tolerance",
         }, source_data=x.copy(), uniform_timestamps=grid.copy(), source_timestamps=source.copy())
         return epoch
 
@@ -369,10 +383,14 @@ class ContinuousLSL:
                         and last - first >= self.cfg.startup_buffer_s):
                     self.estimated_fs = (received - 1) / (last - first)
                     startup_error = abs(self.estimated_fs / self.fs - 1)
-                    if startup_error > self.cfg.hard_rate_tolerance:
-                        print(f"[时间轴警告] 启动LSL采样率{self.estimated_fs:.3f}Hz，"
-                              f"与声明值{self.fs:g}Hz偏差较大；仅警告并继续。", flush=True)
-                    elif startup_error > self.cfg.rate_tolerance:
+                    message = _timebase_mismatch_message(self.fs, self.estimated_fs, self.cfg.hard_rate_tolerance)
+                    self.metadata["startup_timebase_review"] = {
+                        "declared_fs_hz": self.fs, "timestamp_estimated_fs_hz": self.estimated_fs,
+                        "rate_error_fraction": startup_error, "hard_tolerance": self.cfg.hard_rate_tolerance,
+                        "passed": message is None, "error": message}
+                    if message is not None:
+                        raise RuntimeFault("ACQUISITION", message)
+                    if startup_error > self.cfg.rate_tolerance:
                         print(f"[时间轴警告] 启动LSL采样率{self.estimated_fs:.3f}Hz，"
                               f"与声明值{self.fs:g}Hz轻微偏差。", flush=True)
                     _validate_fs(self.estimated_fs, max(high for _, high in self.cfg.filter_bands))

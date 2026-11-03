@@ -14,8 +14,10 @@ from .intent import *
 from .llm import ChatBackendError, ChatMessage, DeepSeekChatBackend
 from .voice import Speaker, make_speaker
 from .wheelchair import WheelchairPort
-from .selection import ChairStateMachine, SelectionVote
+from .selection import ChairStateMachine, ScoreSmoother
 from .predict import WordPredictor, apply_suggestion, llm_suggestions, merge_suggestions
+from .stimulus_layout import stimulus_geometry, chair_positions
+from . import score_norm
 
 
 
@@ -79,9 +81,9 @@ CHATBOX_PAGE1_GRID = {
     **{symbol: (-4.0 + index, 1, 1.0) for index, symbol in enumerate("ASDFGHJKL")},
     **{symbol: (-3.0 + index, 2, 1.0) for index, symbol in enumerate("ZXCVBNM")},
     "BACK_MENU": (-4.5, 2, 1.4), "BACKSPACE": (4.5, 2, 1.4),
-    "123": (-4.5, 3, 1.4), "SPACE": (0.0, 3, 3.6), "SEND": (4.5, 3, 1.4),
+    "123": (-4.5, 3, 1.4), "SPACE": (0.0, 3, 1.4), "SEND": (4.5, 3, 1.4),
     # Candidate bar: three wide keys, well apart, above the top letter row.
-    "SUGGEST1": (-3.3, -1.1, 2.6), "SUGGEST2": (0.0, -1.1, 2.6), "SUGGEST3": (3.3, -1.1, 2.6),
+    "SUGGEST1": (-3.3, -1.1, 1.4), "SUGGEST2": (0.0, -1.1, 1.4), "SUGGEST3": (3.3, -1.1, 1.4),
 }
 # Number page: an even grid that fills the same area as the letter page.
 CHATBOX_PAGE2_GRID = {
@@ -89,32 +91,27 @@ CHATBOX_PAGE2_GRID = {
     **{symbol: ((-4.5, -2.25, 0.0, 2.25, 4.5)[index], 0.27, 1.4) for index, symbol in enumerate("67890")},
     **{symbol: ((-4.5, -1.5, 1.5, 4.5)[index], 1.63, 1.4)
        for index, symbol in enumerate(("BACK_MENU", ",", ".", "BACKSPACE"))},
-    "ABC": (-4.5, 3, 1.4), "SPACE": (0.0, 3, 3.6), "SEND": (4.5, 3, 1.4),
+    "ABC": (-4.5, 3, 1.4), "SPACE": (0.0, 3, 1.4), "SEND": (4.5, 3, 1.4),
 }
-# Frequencies are permuted from the 8.0-15.8 Hz / 0.2 Hz benchmark grid by an
-# offline search that penalises similar frequencies on nearby keys. On the
-# letter page, touching keys differ by >=1.4 Hz and any two keys within 0.4 Hz
-# have at least one key between them. The number page has its own grid and assignment below.
+# Frequencies come from the 8.0-15.8 Hz / 0.2 Hz benchmark grid. In the 2026-11-03
+# mode-3 collection (P01) keys at 8.0-10.8 Hz were almost never recognised while most
+# keys at 11-15.8 Hz were, so an offline search gives the best-recognised frequencies to
+# the most-used keys (English letter frequency, SPACE, DEL, SEND, plus the demo text
+# "BCI TEST"). Touching keys still differ by >=1.4 Hz. Rare letters (Q, Z, X, J, ...)
+# take the low frequencies. Reassign if a new collection shows a different pattern.
 CHATBOX_PAGE1_FREQUENCY_BY_SYMBOL = {
-    "Q": 8.8, "W": 15.4, "E": 13.4, "R": 10.8, "T": 13.0,
-    # I moved off 10.0 Hz (2026-10-21 ChatBox collection): a narrow 10.0 Hz EEG component
-    # not locked to the flicker outscored the true key on 13.6% of other keys' trials at
-    # 5 s (grid median 2.0%); 10.2 Hz is the only free frequency that keeps the rules above.
-    "Y": 10.4, "U": 12.6, "I": 10.2, "O": 12.0, "P": 14.2,
-    "A": 12.4, "S": 9.8, "D": 8.2, "F": 15.8, "G": 8.4,
-    "H": 15.6, "J": 8.0, "K": 15.2, "L": 8.6,
-    "Z": 14.8, "X": 11.6, "C": 14.0, "V": 11.8, "B": 13.8, "N": 11.0, "M": 13.2,
-    "BACKSPACE": 11.2, "123": 10.6, "SPACE": 9.2, "SEND": 14.6,
-    # MENU uses the best free grid frequency here: 1.2 Hz from A and Z, slightly under
-    # the 1.4 Hz rule above, because moving a letter would change its recorded frequency.
-    "BACK_MENU": 13.6,
-    # Suggestion keys use unused grid frequencies; every adjacent key differs by >=1.0 Hz.
-    "SUGGEST1": 12.2, "SUGGEST2": 15.0, "SUGGEST3": 9.0,
+    "Q": 8.8, "W": 10.2, "E": 15.0, "R": 13.4, "T": 14.8,
+    "Y": 10.0, "U": 13.6, "I": 15.4, "O": 14.0, "P": 12.4,
+    "A": 14.6, "S": 13.0, "D": 11.2, "F": 9.0, "G": 13.2,
+    "H": 11.8, "J": 9.2, "K": 12.0, "L": 15.6,
+    "Z": 9.8, "X": 14.4, "C": 15.8, "V": 10.4, "B": 15.2, "N": 13.8, "M": 10.6,
+    "BACKSPACE": 12.2, "123": 10.8, "SPACE": 12.6, "SEND": 14.2, "BACK_MENU": 12.8,
+    "SUGGEST1": 11.6, "SUGGEST2": 11.4, "SUGGEST3": 11.0,
 }
-# Assigned by an offline search for this grid: neighbouring keys differ by >=1.6 Hz.
+# Same search for the number page (no keys touch here, so only recognition matters).
 CHATBOX_PAGE2_FREQUENCY_BY_SYMBOL = {
-    "1": 10.2, "2": 14.6, "3": 10.6, "4": 15.8, "5": 10.4, "6": 8.0, "7": 13.0, "8": 8.6, "9": 13.6, "0": 8.2,
-    ",": 11.0, ".": 15.6, "BACK_MENU": 15.2, "BACKSPACE": 11.6, "ABC": 13.2, "SPACE": 9.0, "SEND": 9.4,
+    "1": 11.8, "2": 13.8, "3": 14.6, "4": 13.0, "5": 11.2, "6": 13.4, "7": 14.2, "8": 12.2, "9": 15.6, "0": 14.0,
+    ",": 15.8, ".": 12.6, "BACK_MENU": 11.6, "BACKSPACE": 15.2, "ABC": 14.8, "SPACE": 15.0, "SEND": 15.4,
 }
 CHATBOX_FREQUENCY_BY_SYMBOL = {1: CHATBOX_PAGE1_FREQUENCY_BY_SYMBOL,
                                2: CHATBOX_PAGE2_FREQUENCY_BY_SYMBOL}
@@ -131,6 +128,10 @@ CHAIR_STATE_CONFIRM = "#8A6A12"
 CHAIR_KEY_PAUSED = "#4A5068"
 # EEG arrives slightly after the clock reading; windows end this far in the past.
 DATA_LAG_S = 0.05
+# Chat overlay slide: drops in with a small bounce, retracts a little faster.
+CHAT_PANEL_SHOW_S = 0.45
+CHAT_PANEL_HIDE_S = 0.35
+CHAT_SCRIM_OPACITY = 0.55
 
 def _chatbox_display_label(symbol: str) -> str:
     """将 ChatBox 页面内部动作名称转换为屏幕标签。"""
@@ -355,6 +356,9 @@ class PsychoPyKeyboard:
         self._chat_future: Any = None
         self._chat_history: list[ChatMessage] = []
         self._chat_page = 1
+        # Chat overlay: hidden while typing, dropped down after SEND (see _slide_chat_panel).
+        self._chat_panel_shown = False
+        self._chat_panel_dy = 0.0
         self._unread_reply = False
         self._typing_during_reply = False  # caregiver pressed SPACE while a reply was pending
         # Word prediction: local predictor, current candidate words, optional DeepSeek request.
@@ -367,6 +371,8 @@ class PsychoPyKeyboard:
         self._speaker: Speaker = Speaker()
         self._chat_backend: Any = None
         self._output_cache: Optional[str] = None
+        self._chat_score_norm = self._load_chat_score_norm()
+        self._chat_norm_warned: set[int] = set()
         self._closed = False
         self._graphics_gc = MainThreadGraphicsGC()
         try:
@@ -378,6 +384,18 @@ class PsychoPyKeyboard:
             except Exception:
                 pass
             raise
+
+    def _load_chat_score_norm(self) -> Optional[dict[str, Any]]:
+        """读取模式3按频率的分数归一化文件；不可用时打印原因并回退原始分数。"""
+        if not self.cfg.chat_score_norm_file:
+            return None
+        try:
+            norm = score_norm.load(self.cfg.chat_score_norm_file)
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"[分数归一化] 未启用，模式3使用原始 FBCCA 分数：{exc}", file=sys.stderr, flush=True)
+            return None
+        print(f"[分数归一化] 已加载 {norm['path']}（来源 {norm['source_session']}）", flush=True)
+        return norm
 
     def _build_window(self) -> None:
         """创建全部视觉元素，测量刷新率并完成静态渲染时序检查。"""
@@ -405,8 +423,12 @@ class PsychoPyKeyboard:
         self.mode_title = visual.TextStim(self.win, text="Select a mode",
             pos=(0, height*.30), height=42*ui_scale, font=menu_font,
             color="white", bold=True, autoLog=False)
-        mode_square_size = min(300*ui_scale, width*.17, height*.28)
-        mode_x = mode_square_size * 1.5
+        self.mode_geometry = stimulus_geometry(
+            width, height, self.win.keyboard_display_size,
+            diagonal_inches=cfg.screen_diagonal_inches, distance_cm=cfg.viewing_distance_cm,
+            size_deg=cfg.stimulus_size_deg, pitch_deg=cfg.stimulus_center_pitch_deg, rows=1)
+        mode_square_size = self.mode_geometry["side_pix_units"]
+        mode_x = self.mode_geometry["center_pitch_pix_units"]
         self.mode_positions = np.asarray(((-mode_x, 0.0), (0.0, 0.0), (mode_x, 0.0)), dtype=float)
         mode_radius = mode_square_size * .09
         self.mode_squares = [self._rounded_rect(mode_square_size, mode_square_size, mode_radius,
@@ -424,15 +446,22 @@ class PsychoPyKeyboard:
         self.mode_status = visual.TextStim(self.win, text="",
             pos=(0, -height/2 + 125*ui_scale), height=20*ui_scale,
             font=menu_font, color="#BDBDC6", autoLog=False)
-        # The chat splits the window: chat history and the draft box fill the top
-        # half, and the SSVEP keyboard fills the bottom half like a phone IME.
-        chat_w = width * .92
+        # While typing only the draft box shows, at the top, and the SSVEP keyboard
+        # takes everything below it (larger keys give a stronger SSVEP). The chat
+        # history is an overlay panel that drops down over the still keyboard after
+        # SEND and slides back up before the keys flicker again. 96% of the width
+        # covers the widest key row, so no key edge shows beside the panel.
+        chat_w = width * .96
         chat_left = -chat_w / 2
-        chat_top, chat_bottom = height * .47, height * .257
+        chat_top, chat_bottom = height * .485, height * .02
         chat_pad = 18 * ui_scale
+        self._chat_panel_base_y = (chat_top + chat_bottom) / 2
+        self._chat_panel_hidden_dy = height / 2 - chat_bottom + 24 * ui_scale
+        self.chat_scrim = visual.Rect(self.win, width=width, height=height, units="pix",
+            fillColor=(-1, -1, -1), lineColor=None, colorSpace="rgb", opacity=0, autoLog=False)
         self.chat_panel = self._rounded_rect(chat_w, chat_top - chat_bottom, 14*ui_scale,
-            (0, (chat_top + chat_bottom) / 2), CHAT_SURFACE_DARK)
-        chat_font = 18 * ui_scale
+            (0, self._chat_panel_base_y), CHAT_SURFACE_DARK, CHAT_ACCENT, max(1.5, 2 * ui_scale))
+        chat_font = 26 * ui_scale
         self._chat_font = chat_font
         self._chat_left, self._chat_right = chat_left + chat_pad * .6, -chat_left - chat_pad * .6
         self._chat_bubble_pad = (13 * ui_scale, 6 * ui_scale)
@@ -459,17 +488,20 @@ class PsychoPyKeyboard:
             for _ in range((self._chat_max_lines + 1) // 2 + 1)]
         self.chat_empty_text = visual.TextStim(self.win,
             text="No messages yet  ·  spell a message below, then select SEND",
-            pos=(0, (chat_top + chat_bottom) / 2), height=chat_font, font=menu_font,
+            pos=(0, self._chat_panel_base_y), height=chat_font, font=menu_font,
             wrapWidth=chat_w * .9, color=CHAT_MUTED, autoLog=False)
         self._chat_empty = True
-        # Below the keyboard, so it never covers a bubble.
-        self.chat_scroll_hint = visual.TextStim(self.win, text="", pos=(0, -height * .475),
+        # Along the panel's bottom edge, so it moves with the panel.
+        self._chat_scroll_hint_base_y = chat_bottom + 12 * ui_scale
+        self.chat_scroll_hint = visual.TextStim(self.win, text="",
+            pos=(0, self._chat_scroll_hint_base_y),
             height=14*ui_scale, font=menu_font, color=CHAT_ACCENT, autoLog=False)
         # Only problems are shown here; routine states stay wordless.
         self.chat_status = visual.TextStim(self.win, text="", pos=(0, -height * .475),
             height=18*ui_scale, wrapWidth=width*.9, font=menu_font, color=CHAT_WARNING, autoLog=False)
         draft_h = height * .05
-        draft_y = chat_bottom - height * .012 - draft_h / 2
+        draft_y = height * .47 - draft_h / 2
+        self._draft_bottom = draft_y - draft_h / 2
         draft_text_h = min(26 * ui_scale, draft_h * .50)
         self.chat_draft_box = self._rounded_rect(chat_w, draft_h, draft_h * .32, (0, draft_y),
             CHAT_SURFACE_DARK, CHAT_ACCENT, max(1.5, 2 * ui_scale))
@@ -486,8 +518,12 @@ class PsychoPyKeyboard:
         self._output_max_chars = max(
             12, int((chat_w - 2 * chat_pad - draft_label_w) / (draft_text_h * .72)))
         self._sync_output_text(force=True)
+        self._place_chat_panel(0.0 if self._chat_panel_shown else self._chat_panel_hidden_dy)
         self._build_chatbox_page_visuals(width, height, ui_scale, menu_font)
         self._build_chair_visuals(width, height, ui_scale, menu_font)
+        layout["stimulus_geometry"] = {"menu": self.mode_geometry,
+                                       "wheelchair": self.chair_geometry,
+                                       "chatbox_key": self._chatbox_key_geometry()}
         self.arm_title = visual.TextStim(self.win, text="ROBOT ARM", pos=(0, height * .22),
             height=height * .07, font=menu_font, color=CHAT_TEXT, bold=True, autoLog=False)
         self.arm_menu_key = self._rounded_rect(height * .30, height * .205, height * .03,
@@ -605,27 +641,45 @@ class PsychoPyKeyboard:
             },
             "selection": {"window_s": cfg.window_s, "chat_window_s": cfg.chat_window_s,
                           "decode_step_s": cfg.decode_step_s, "score_ema": cfg.score_ema,
-                          "chat_score_ema": cfg.chat_score_ema, "hold_windows": cfg.selection_hold_windows,
-                          "chat_hold_windows": cfg.chat_hold_windows},
+                          "chat_score_ema": cfg.chat_score_ema, "decision_rule": "single_valid_window",
+                          "chat_number_window_s": cfg.chat_number_window_s,
+                          "chat_gaze_shift_s": cfg.chat_gaze_shift_s,
+                          "chat_min_margin": cfg.chat_min_margin,
+                          "chat_score_normalization": (
+                              None if self._chat_score_norm is None else
+                              {"file": self._chat_score_norm["path"],
+                               "source_session": self._chat_score_norm["source_session"],
+                               "min_z": cfg.chat_norm_min_z, "min_z_margin": cfg.chat_norm_min_margin})},
+            "chat_decoder_profiles": {
+                str(page): {"window_s": profile.window_s, "n_harmonics": profile.n_harmonics,
+                            "filter_bands_hz": profile.filter_bands, "weight_a": profile.weight_a,
+                            "weight_b": profile.weight_b, "cca_regularization": profile.cca_regularization}
+                for page in (1, 2) for profile in (cfg.chat_page_profile(page),)},
             "static_render_check": check, "physical_timing_measured": False, "luminance_gamma_calibrated": False}
 
     def _build_chatbox_page_visuals(self, width: float, height: float,
                                     ui_scale: float, menu_font: str) -> None:
-        """Build the IME-style ChatBox keyboard in the lower half of the window.
+        """Build the IME-style ChatBox keyboard below the thin chat strip.
 
-        Keys are placed from CHATBOX_PAGE*_GRID in key-pitch units. Gaps are
-        deliberately wide (about 40% of the pitch) so neighbouring flickers stay
-        visually separated; the decoder's class order still follows
-        CHATBOX_PAGE*_SYMBOLS, independent of screen position.
+        Keys are placed from CHATBOX_PAGE*_GRID in key-pitch units; the decoder's
+        class order still follows CHATBOX_PAGE*_SYMBOLS, independent of screen
+        position.
         """
         visual = self.visual
-        # Keys take ~70% of the pitch: large enough to read and fixate, while the
-        # remaining ~30% gap plus the frequency permutation keeps neighbours apart.
-        keyboard_top, keyboard_bottom = height * .05, -height * .445
-        pitch_y = (keyboard_top - keyboard_bottom) / 4
-        pitch_x = min(width * .92 / 10.4, pitch_y * 1.7)
-        key_h = pitch_y * .72
-        key_w = min(pitch_x * .70, key_h * 1.25)
+        # Everything between the draft box and the status line belongs to the keys.
+        # Grid rows span -1.1 (candidate bar) to 3, so the outer key edges sit
+        # 0.6 + KEY_FILL/2 pitches above row 0's top and 3.5 + KEY_FILL/2 below it.
+        # Keys fill 80% of the pitch: the 20% gap plus the frequency permutation keeps
+        # neighbours apart. Ten keys per row make width the limit (~1.7 deg on a 13"
+        # screen at 70 cm), so the extra height makes keys taller rather than wider.
+        key_fill = .80
+        area_top, area_bottom = self._draft_bottom - height * .015, -height * .455
+        pitch_y = (area_top - area_bottom) / (4.1 + key_fill)
+        keyboard_top = area_top - (.6 + key_fill / 2) * pitch_y
+        pitch_x = min(width * .98 / 10.4, pitch_y * 1.7)
+        key_h = pitch_y * key_fill
+        key_w = min(pitch_x * key_fill, key_h * 1.25)
+        self._chatbox_key_size = (key_w, key_h)
         page_layouts: dict[int, list[tuple[str, tuple[float, float], tuple[float, float]]]] = {}
         for page, grid in ((1, CHATBOX_PAGE1_GRID), (2, CHATBOX_PAGE2_GRID)):
             symbols = self._chatbox_page_symbols(page)
@@ -648,6 +702,7 @@ class PsychoPyKeyboard:
                                             _chatbox_key_face(symbol))
                 if symbol in CHATBOX_SUGGESTION_SYMBOLS:
                     self._suggestion_label_height = min(size[1] * .40, 34 * ui_scale)
+                    self._suggestion_key_width = size[0]
                 text_length = len(_chatbox_display_label(symbol))
                 # Bold capitals are ~0.75 em wide; keep the whole word inside the key.
                 label_height = (min(size[1] * .56, size[0] * .62) if text_length == 1 else
@@ -659,6 +714,19 @@ class PsychoPyKeyboard:
                                 "label": label, "position": position, "size": size,
                                 "face": _chatbox_key_face(symbol)})
             self.chat_page_visuals[page] = visuals
+
+    def _chatbox_key_geometry(self) -> dict[str, Any]:
+        """记录单字母键尺寸；声明了屏幕对角线时换算为视角（未经独立测量）。"""
+        key_w, key_h = self._chatbox_key_size
+        size_deg = None
+        if self.cfg.screen_diagonal_inches:
+            units_per_cm = (math.hypot(*self.win.keyboard_display_size)
+                            / (self.cfg.screen_diagonal_inches * 2.54))
+            size_deg = [math.degrees(2 * math.atan(side / units_per_cm
+                                                   / (2 * self.cfg.viewing_distance_cm)))
+                        for side in (key_w, key_h)]
+        return {"key_size_pix_units": [key_w, key_h], "key_size_deg": size_deg,
+                "physical_size_independently_measured": False}
 
     def _measure_refresh_rate(self) -> Optional[float]:
         """在静态键盘上测量刷新率，避免 PsychoPy 绘制独立的等待画面。"""
@@ -710,9 +778,9 @@ class PsychoPyKeyboard:
 
     def _draw_chatbox_keyboard(self, page: int, *, flicker_rgb: Optional[np.ndarray] = None,
                                selected_index: Optional[int] = None) -> None:
-        """绘制模式三：上半部分聊天记录与草稿框，下半部分 SSVEP 键盘。"""
+        """绘制模式三：顶部输入框、SSVEP 键盘，以及弹下时覆盖其上的对话面板。"""
         self._sync_output_text()
-        self._draw_chat_area()
+        self._draw_draft()
         for index, item in enumerate(self.chat_page_visuals[page]):
             if flicker_rgb is None:
                 item["square"].fillColor = item["face"]
@@ -722,6 +790,8 @@ class PsychoPyKeyboard:
             item["label"].draw()
             if index == selected_index:
                 item["border"].draw()
+        self._draw_chat_overlay()
+        self.chat_status.draw()
 
     def _chatbox_page_symbols(self, page: int) -> tuple[str, ...]:
         """返回指定 ChatBox 页面的动作顺序，与视觉对象和解码器一致。"""
@@ -776,19 +846,26 @@ class PsychoPyKeyboard:
         level = np.sin(2 * np.pi * frequencies * frame / self.refresh_hz)
         return np.repeat(level[:, None], 3, axis=1)
 
-    def _window_candidate(self, vote: SelectionVote, result: dict[str, Any], gate: str,
-                          visible: int, profile: Optional[Config] = None) -> Optional[int]:
+    def _window_candidate(self, smoother: ScoreSmoother, result: dict[str, Any], gate: str,
+                          visible: int, profile: Optional[Config] = None,
+                          norm: Optional[tuple[np.ndarray, np.ndarray]] = None) -> Optional[int]:
         """平滑分数并判断本窗口是否有效；返回候选序号，隐藏对照频率胜出时返回 None。
 
         gate 为 required 时阈值缺失即无效，optional 时阈值缺失不拦截，off 时不做门控。
+        norm 为 (均值, 标准差) 时先换算成按频率的 z 分数；原始分数仍保存在 fbcca_scores。
         """
         profile = self.cfg if profile is None else profile
-        smoothed = vote.smooth(result["scores"])
+        if norm is not None:
+            result["scores"] = (np.asarray(result["scores"], dtype=float) - norm[0]) / norm[1]
+            result["score_normalization"] = "per_frequency_z"
+        smoothed = smoother.smooth(result["scores"])
         configured = profile.rejection_thresholds_configured
         if gate == "required" and not configured:
             return None
         if gate != "off" and configured:
-            if not self._rejection_diagnostics(dict(result, scores=smoothed), profile)["accepted"]:
+            diagnostics = self._rejection_diagnostics(dict(result, scores=smoothed), profile)
+            result["rejection_diagnostics"] = diagnostics
+            if not diagnostics["accepted"]:
                 return None
         best = int(np.argmax(smoothed))
         return best if best < visible else None
@@ -796,11 +873,11 @@ class PsychoPyKeyboard:
     def _flicker_until(self, kind: str, trial_id: int, decode_frequencies: Sequence[float],
                        shown_frequencies: Sequence[float], draw: Any, on_window: Any,
                        on_frame: Any = None, window_floor: Any = None,
-                       profile: Optional[Config] = None) -> Any:
+                       profile: Optional[Config] = None, settle_s: float = 0.0) -> Any:
         """持续闪烁并按滑动窗口识别，直到回调返回非 None 的结果。
 
-        EEG 只取本次闪烁开始之后的数据；解码在工作线程进行，来不及时跳过窗口，
-        不会累积延迟。无效窗口以 ``on_window(None)`` 通知。
+        EEG 只取本次闪烁开始 settle_s 秒之后的数据；解码在工作线程进行，来不及时
+        跳过窗口，不会累积延迟。无效窗口以 ``on_window(None)`` 通知。
         """
         from .decoding import FbccaDecoder
         cfg = self.cfg if profile is None else profile
@@ -808,7 +885,13 @@ class PsychoPyKeyboard:
         previous_decoder = getattr(self.collector, "decoder", None)
         self.collector.decoder = FbccaDecoder(cfg, target_frequencies_hz=tuple(decode_frequencies))
         onset = EventStamp(kind, trial_id, details={"decode_frequencies_hz": list(decode_frequencies),
-                                                    "window_s": cfg.window_s, "step_s": cfg.decode_step_s})
+                                                    "window_s": cfg.window_s, "step_s": cfg.decode_step_s,
+                                                    "settle_s": settle_s,
+                                                    "min_margin": cfg.rejection_min_margin,
+                                                    "n_harmonics": cfg.n_harmonics,
+                                                    "filter_bands_hz": cfg.filter_bands,
+                                                    "weight_a": cfg.weight_a, "weight_b": cfg.weight_b,
+                                                    "cca_regularization": cfg.cca_regularization})
         cancel = self._active_decode_cancel = threading.Event()
         future = None
         frame = 0
@@ -840,6 +923,13 @@ class PsychoPyKeyboard:
                         result = finished.result()
                     except InvalidTrial as exc:
                         print(f"[窗口无效] {exc}", flush=True)
+                        if kind == "mode_stimulus_onset":
+                            diagnostics = {} if exc.epoch is None else exc.epoch.diagnostics
+                            self.markers.mark(EventStamp("mode_window_invalid", trial_id, details={
+                                "window_id": window_id, "reason": str(exc), "code": exc.code,
+                                **{key: diagnostics.get(key) for key in (
+                                    "requested_window_start", "requested_window_end", "nominal_fs_hz",
+                                    "timestamp_estimated_fs", "local_rate_error_fraction")}}))
                         result = None
                     value = on_window(result)
                     if value is not None:
@@ -847,7 +937,7 @@ class PsychoPyKeyboard:
                 now = self.clock()
                 if future is None and now >= next_decode:
                     start = now - DATA_LAG_S - cfg.window_s
-                    floor = onset.timestamp + cfg.response_delay_s
+                    floor = onset.timestamp + cfg.response_delay_s + settle_s
                     if window_floor is not None:
                         floor = max(floor, window_floor())
                     if start >= floor:
@@ -871,20 +961,34 @@ class PsychoPyKeyboard:
 
     def _select_by_windows(self, kind: str, trial_id: int, decode_frequencies: Sequence[float],
                            shown_frequencies: Sequence[float], draw: Any, gate: str,
-                           on_frame: Any = None, profile: Optional[Config] = None) -> Any:
-        """闪烁直到连续有效窗口选中同一方块，返回 (序号, 结果)，或 on_frame 的返回值。"""
+                           on_frame: Any = None, profile: Optional[Config] = None,
+                           settle_s: float = 0.0,
+                           norm: Optional[tuple[np.ndarray, np.ndarray]] = None) -> Any:
+        """首个有效窗口即选中方块，返回 (序号, 结果)，或 on_frame 的返回值。"""
         cfg = self.cfg if profile is None else profile
-        vote = SelectionVote(cfg.selection_hold_windows, cfg.score_ema)
+        smoother = ScoreSmoother(cfg.score_ema)
         visible = len(shown_frequencies)
 
         def on_window(result: Optional[dict[str, Any]]) -> Optional[tuple[int, dict[str, Any]]]:
-            candidate = None if result is None else self._window_candidate(vote, result, gate, visible, cfg)
+            candidate = None if result is None else self._window_candidate(
+                smoother, result, gate, visible, cfg, norm)
             self._live_candidate = candidate
-            stable = vote.record(candidate)
-            return None if stable is None else (stable, result)
+            if kind == "mode_stimulus_onset" and result is not None:
+                epoch = result.get("epoch")
+                diagnostics = {} if epoch is None else epoch.diagnostics
+                self.markers.mark(EventStamp("mode_window_decision", trial_id, details={
+                    "window_id": result.get("trial_id"),
+                    "decode_frequencies_hz": list(decode_frequencies),
+                    "raw_scores": np.asarray(result["scores"]).tolist(),
+                    "selection_scores": smoother.smoothed.tolist(),
+                    "candidate_index": candidate, "stable_index": candidate,
+                    "rejection": result.get("rejection_diagnostics"),
+                    **{key: diagnostics.get(key) for key in (
+                        "requested_window_start", "requested_window_end", "timestamp_estimated_fs")}}))
+            return None if candidate is None else (candidate, result)
 
         return self._flicker_until(kind, trial_id, decode_frequencies, shown_frequencies,
-                                   draw, on_window, on_frame, profile=cfg)
+                                   draw, on_window, on_frame, profile=cfg, settle_s=settle_s)
 
     def _run_chatbox_selection(self, page: int, selection_id: int) -> Optional[tuple[str, dict[str, Any]]]:
         """持续闪烁一页键盘直到选中；打字期间回复到达时返回 None，先处理回复。"""
@@ -895,11 +999,23 @@ class PsychoPyKeyboard:
         def reply_ready() -> Optional[str]:
             return "REPLY" if self._chat_future is not None and self._chat_future.done() else None
 
+        # The keys must be fully uncovered before they flicker.
+        self._slide_chat_panel(False)
+        profile = self.cfg.chat_page_profile(page)
+        norm = score_norm.vectors(self._chat_score_norm, profile, frequencies)
+        if norm is not None:
+            # 门槛改为 z 单位；原始分数门槛只适用于未归一化的 FBCCA 分数。
+            profile = replace(profile, rejection_min_score=self.cfg.chat_norm_min_z,
+                              rejection_min_margin=self.cfg.chat_norm_min_margin)
+        elif self._chat_score_norm is not None and page not in self._chat_norm_warned:
+            self._chat_norm_warned.add(page)
+            print(f"[分数归一化] 第{page}页解码参数或频率与归一化文件不一致，本页使用原始分数",
+                  file=sys.stderr, flush=True)
         outcome = self._select_by_windows(
             "chatbox_stimulus_onset", selection_id, frequencies, frequencies,
             lambda frame: self._draw_chatbox_keyboard(page, flicker_rgb=frame,
                                                       selected_index=self._live_candidate),
-            gate, reply_ready, self.cfg.chat_profile)
+            gate, reply_ready, profile, settle_s=self.cfg.chat_gaze_shift_s, norm=norm)
         if outcome == "REPLY":
             return None
         return symbols[outcome[0]], outcome[1]
@@ -942,20 +1058,63 @@ class PsychoPyKeyboard:
             bubble_h = len(block_lines) * self._chat_line_h + 2 * pad_y
             top = self._chat_text_top - row * self._chat_line_h + pad_y
             left = self._chat_right - bubble_w if role == "user" else self._chat_left
-            stim.pos = (left + pad_x, top - pad_y)
+            bubble["text_base"] = (left + pad_x, top - pad_y)
+            bubble["face_base"] = (left + bubble_w / 2, top - bubble_h / 2)
+            stim.pos = (bubble["text_base"][0], bubble["text_base"][1] + self._chat_panel_dy)
             bubble["face"].vertices = _rounded_rect_vertices(bubble_w, bubble_h,
                                                              self._chat_bubble_radius)
-            bubble["face"].pos = (left + bubble_w / 2, top - bubble_h / 2)
+            bubble["face"].pos = (bubble["face_base"][0], bubble["face_base"][1] + self._chat_panel_dy)
             bubble["face"].fillColor = CHAT_BUBBLE_USER if role == "user" else CHAT_BUBBLE_REPLY
         below = offset + self._chat_max_lines < len(lines)
         self.chat_scroll_hint.text = ("More below  v" if below else
                                       "^  Earlier above" if offset > 0 else "")
 
-    def _format_chat_history(self) -> None:
-        """显示对话末尾（最新内容）；只限制显示区域，不截断发送给 API 的完整历史。"""
-        self._chat_empty = not self._chat_history
-        lines, _ = self._chat_layout()
+    def _format_chat_history(self, pending: bool = False) -> None:
+        """显示对话末尾（最新内容）；只限制显示区域，不截断发送给 API 的完整历史。
+
+        pending 为真时在末尾显示一个“…”回复气泡，表示正在等待 DeepSeek。
+        """
+        messages = self._chat_history + ([ChatMessage("assistant", "...")] if pending else [])
+        self._chat_empty = not messages
+        lines, _ = self._chat_layout(messages)
         self._show_chat_lines(lines, max(0, len(lines) - self._chat_max_lines))
+
+    def _place_chat_panel(self, dy: float) -> None:
+        """把对话面板整体上移 dy（0 为完全落下）；面板外的输入框和状态行不动。"""
+        self._chat_panel_dy = float(dy)
+        self.chat_panel.pos = (0, self._chat_panel_base_y + dy)
+        self.chat_empty_text.pos = (0, self._chat_panel_base_y + dy)
+        self.chat_scroll_hint.pos = (0, self._chat_scroll_hint_base_y + dy)
+        for bubble in self.chat_bubbles:
+            if bubble["visible"]:
+                bubble["text"].pos = (bubble["text_base"][0], bubble["text_base"][1] + dy)
+                bubble["face"].pos = (bubble["face_base"][0], bubble["face_base"][1] + dy)
+        shown = 1.0 - min(1.0, max(0.0, dy / self._chat_panel_hidden_dy))
+        self.chat_scrim.opacity = CHAT_SCRIM_OPACITY * shown
+
+    def _slide_chat_panel(self, show: bool) -> None:
+        """对话面板从顶部弹下或收回顶部；只在键盘静止时调用，动画期间仍响应 ESC。"""
+        if show == self._chat_panel_shown:
+            return
+        self._chat_panel_shown = show
+        start = self._chat_panel_dy
+        end = 0.0 if show else self._chat_panel_hidden_dy
+        duration = CHAT_PANEL_SHOW_S if show else CHAT_PANEL_HIDE_S
+        began = self.clock()
+        while True:
+            self._check_abort()
+            t = min(1.0, (self.clock() - began) / duration)
+            if show:   # ease-out-back: overshoots slightly downward, then settles
+                c = 1.2
+                ease = 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2
+            else:      # ease-in: accelerates back up
+                ease = t ** 3
+            self._place_chat_panel(start + (end - start) * ease)
+            self._draw_chatbox_keyboard(self._chat_page)
+            self.win.flip()
+            if t >= 1.0:
+                break
+        self._place_chat_panel(end)
 
     def _speak(self, text: str) -> None:
         """语音提示；语音不可用时静默跳过。"""
@@ -985,12 +1144,14 @@ class PsychoPyKeyboard:
         max_offset = max(0, len(lines) - page_lines)
         # Start with the end of the user's question visible above the reply.
         first_offset = min(max(0, spans[0][0] - 2), max_offset)
+        offset = first_offset
+        self._show_chat_lines(lines, offset)
+        self._slide_chat_panel(True)
         self._speak(spoken)
         voice_progress = self._speaker.available
         self.event.getKeys(keyList=["space"])
         started = self.clock()
         finished_at: Optional[float] = None
-        offset = -1
         chars_per_s = self.cfg.chatbox_reading_chars_per_s
         try:
             while True:
@@ -1028,14 +1189,18 @@ class PsychoPyKeyboard:
         finally:
             self._speaker.stop()
             self._format_chat_history()
-        # Tell the user the keyboard is about to flicker again.
+        # Tell the user the keyboard is about to flicker again, and clear the view.
         self._speak("Your turn.")
+        self._slide_chat_panel(False)
 
     def _wait_for_chat_reply(self) -> None:
         """发送后键盘保持静止（不闪烁），直到回复到达，避免等待期间误选字符。
 
         回复到达后由 _read_reply_aloud 朗读，读完再恢复闪烁输入。照护者可按空格提前恢复输入。
+        等待期间对话面板落下，显示刚发出的消息和一个“…”回复气泡。
         """
+        self._format_chat_history(pending=True)
+        self._slide_chat_panel(True)
         self.event.getKeys(keyList=["space"])
         while self._chat_future is not None and not self._chat_future.done():
             self._check_abort()
@@ -1045,19 +1210,26 @@ class PsychoPyKeyboard:
             self._draw_chatbox_keyboard(self._chat_page)
             self.win.flip()
 
-    def _draw_chat_area(self) -> None:
-        """绘制上半屏的对话面板（不含闪烁）。"""
+    def _draw_draft(self) -> None:
+        """绘制顶部输入框；键盘之前绘制，弹下的对话面板会盖住它。"""
+        self.chat_draft_box.draw()
+        self.output_caption.draw()
+        self.output_text.draw()
+
+    def _draw_chat_overlay(self) -> None:
+        """面板未完全收起时，绘制压暗层和对话面板（只在键盘静止时出现）。"""
+        if self._chat_panel_dy >= self._chat_panel_hidden_dy:
+            return
+        self.chat_scrim.draw()
         self.chat_panel.draw()
-        self.chat_status.draw()
         if self._chat_empty:
             self.chat_empty_text.draw()
         for bubble in self.chat_bubbles:
             if bubble["visible"]:
                 bubble["face"].draw()
                 bubble["text"].draw()
-        if self.chat_scroll_hint.text and not self.chat_status.text:
+        if self.chat_scroll_hint.text:
             self.chat_scroll_hint.draw()
-        self.chat_draft_box.draw()
 
     def _start_chat_request(self, text: str) -> bool:
         """在独立线程中把草稿发送给 DeepSeek；SSVEP 输入不等待回复，继续进行。"""
@@ -1101,6 +1273,7 @@ class PsychoPyKeyboard:
         try:
             answer = future.result()
         except (ChatBackendError, ValueError) as exc:
+            self._format_chat_history()   # drop the "..." placeholder
             self.chat_status.text = f"DeepSeek request failed: {exc}"[:90]
             print(f"[DeepSeek] {exc}", file=sys.stderr, flush=True)
             self._speak("The reply failed. Your message was not answered.")
@@ -1271,7 +1444,10 @@ class PsychoPyKeyboard:
         selected, _ = self._select_by_windows(
             "mode_stimulus_onset", 0, (*MODE_FREQUENCIES_HZ, *MODE_DECOYS_HZ), MODE_FREQUENCIES_HZ,
             lambda frame: self._draw_mode_menu(selected=self._live_candidate, flicker_rgb=frame),
-            "optional")
+            "optional", profile=self.cfg.menu_profile)
+        self.markers.mark(EventStamp("mode_selected", 0, details={
+            "selected_index": int(selected), "mode_name": MODE_NAMES[selected],
+            "frequency_hz": MODE_FREQUENCIES_HZ[selected]}))
         started = self.clock()
         while self.clock() - started < self.cfg.feedback_s:
             self._check_abort()
@@ -1309,8 +1485,6 @@ class PsychoPyKeyboard:
         selection_id = max(self.ledger.ids, default=0)
         page = self._chat_page = 1
         self.win.color = CHAT_BG
-        self.output_text.autoDraw = True
-        self.output_caption.autoDraw = True
         self._format_chat_history()
         if not self._speaker.available:
             self._speaker = make_speaker(self.cfg.chatbox_voice_enabled, self.cfg.chatbox_voice_rate)
@@ -1429,8 +1603,9 @@ class PsychoPyKeyboard:
                 word = self._suggestion_word(item["symbol"])
                 if item["label"].text != (word or " "):
                     item["label"].text = word or " "
-                    item["label"].height = self._suggestion_label_height * min(
-                        1.0, 7.0 / max(7, len(word)))
+                    # Bold capitals are ~0.75 em wide; shrink long words to fit the key.
+                    item["label"].height = min(self._suggestion_label_height,
+                                               self._suggestion_key_width * .88 / (.75 * max(1, len(word))))
 
     def _confirm_chatbox_selection(self, page: int, symbol: str) -> None:
         """识别后短暂高亮所选键并语音确认，让用户无需移动视线即可知道输入了什么。"""
@@ -1438,7 +1613,8 @@ class PsychoPyKeyboard:
         if symbol in CHATBOX_SUGGESTION_SYMBOLS and not word:
             word = "nothing"  # empty slot: no text was changed
         if self.cfg.chatbox_speak_selections and symbol != "SEND":
-            self._speak(word or CHATBOX_SPOKEN_ACTIONS.get(symbol, symbol))
+            # Lower case: TTS reads a lone capital as "capital B" and may spell all-caps words.
+            self._speak((word or CHATBOX_SPOKEN_ACTIONS.get(symbol, symbol)).lower())
         index = self._chatbox_page_symbols(page).index(symbol)
         started = self.clock()
         while self.clock() - started < self.cfg.chatbox_feedback_s:
@@ -1465,13 +1641,13 @@ class PsychoPyKeyboard:
 
     def _build_chair_visuals(self, width: float, height: float,
                              ui_scale: float, menu_font: str) -> None:
-        """Build the mode 1 direction pad: STOP in the centre, arrows around it."""
-        key_h = height * .205
-        key_w = key_h * 1.45
-        pitch_x, pitch_y = key_w + height * .07, height * .27
-        center_y = -height * .075
-        grid = {"UP": (0, 1), "DOWN": (0, -1), "LEFT": (-1, 0), "RIGHT": (1, 0),
-                "STOP": (0, 0), "MENU": (-1, 1)}
+        """六个等大正方形，采用适合小屏幕的三列两行布局。"""
+        self.chair_geometry = stimulus_geometry(
+            width, height, self.win.keyboard_display_size,
+            diagonal_inches=self.cfg.screen_diagonal_inches, distance_cm=self.cfg.viewing_distance_cm,
+            size_deg=self.cfg.stimulus_size_deg, pitch_deg=self.cfg.stimulus_center_pitch_deg, rows=2)
+        key_h = key_w = self.chair_geometry["side_pix_units"]
+        positions = chair_positions(self.chair_geometry["center_pitch_pix_units"], -height * .035)
         arrow = key_h * .17
         arrows = {"UP": ((-arrow, -arrow * .6), (arrow, -arrow * .6), (0, arrow * .6)),
                   "DOWN": ((-arrow, arrow * .6), (arrow, arrow * .6), (0, -arrow * .6)),
@@ -1480,8 +1656,7 @@ class PsychoPyKeyboard:
         faces = {"STOP": CHAIR_KEY_STOP, "MENU": CHAT_KEY_FUNCTION}
         self.chair_keys = []
         for symbol in CHAIR_SYMBOLS:
-            column, row = grid[symbol]
-            position = (column * pitch_x, center_y + row * pitch_y)
+            position = positions[symbol]
             directional = symbol in arrows
             label_y = position[1] - (key_h * .22 if directional else 0)
             self.chair_keys.append({
@@ -1576,9 +1751,9 @@ class PsychoPyKeyboard:
 
     def _chair_cycle(self, selection_id: int) -> str:
         """运行一次“选择、确认、行驶”；返回 STOP、STOPPED、CANCELLED 或 MENU。"""
-        cfg = self.cfg
-        vote = SelectionVote(cfg.selection_hold_windows, cfg.score_ema)
-        machine = ChairStateMachine(vote, settle_s=cfg.chair_confirm_settle_s,
+        cfg = self.cfg.chair_profile
+        smoother = ScoreSmoother(cfg.score_ema)
+        machine = ChairStateMachine(smoother, settle_s=cfg.chair_confirm_settle_s,
                                     confirm_timeout_s=cfg.chair_confirm_timeout_s,
                                     watchdog_s=cfg.chair_watchdog_s)
         frequencies = tuple(CHAIR_FREQUENCY_BY_SYMBOL[s] for s in CHAIR_SYMBOLS)
@@ -1605,7 +1780,7 @@ class PsychoPyKeyboard:
             before = machine.phase
             candidate = None
             if result is not None:
-                index = self._window_candidate(vote, result, "required", len(CHAIR_SYMBOLS))
+                index = self._window_candidate(smoother, result, "required", len(CHAIR_SYMBOLS), cfg)
                 candidate = None if index is None else CHAIR_SYMBOLS[index]
                 self._live_candidate = index
             else:
@@ -1627,7 +1802,7 @@ class PsychoPyKeyboard:
                 "wheelchair_stimulus_onset", selection_id, frequencies, frequencies,
                 lambda frame: self._draw_chair(flicker_rgb=frame,
                     selected=None if self._live_candidate is None else CHAIR_SYMBOLS[self._live_candidate]),
-                on_window, on_frame, lambda: machine.window_floor)
+                on_window, on_frame, lambda: machine.window_floor, profile=cfg)
         finally:
             self._chair_active = None
             self._show_chair_state()

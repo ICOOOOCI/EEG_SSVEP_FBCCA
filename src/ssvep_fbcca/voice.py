@@ -85,20 +85,50 @@ class SapiSpeaker(Speaker):
 
 
 class SaySpeaker(Speaker):
-    """macOS ``say`` 后端；无进度信息，调用方按估计语速滚动。"""
+    """macOS ``say`` 后端；无进度信息，调用方按估计语速滚动。
+
+    系统默认语音跟随系统语言（中文系统会用普通话读 "1"、"H"），因此和 SAPI 后端一样
+    按文本选择语音：含中日韩字符用中文语音，其余用英文语音。
+    """
 
     available = True
+    _PREFERRED = {"en": ("Samantha", "Alex", "Daniel", "Karen", "Moira", "Tessa"),
+                  "zh": ("Tingting", "Meijia")}
+    _LOCALES = {"en": ("en_US", "en_GB", "en_AU", "en_IE", "en_ZA", "en_IN"), "zh": ("zh_CN", "zh_TW")}
 
     def __init__(self, rate: int = 0):
         self._words_per_minute = str(int(175 * (1 + max(-10, min(10, rate)) / 20)))
         self._process: Optional[subprocess.Popen] = None
+        self._voices = self._pick_voices()
+
+    @classmethod
+    def _pick_voices(cls) -> dict[str, Optional[str]]:
+        """从 ``say -v ?`` 选英文/中文语音；找不到时为 None（使用系统默认语音）。"""
+        try:
+            listing = subprocess.run(["say", "-v", "?"], capture_output=True, text=True,
+                                     timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return {"en": None, "zh": None}
+        installed = [(m.group(1), m.group(2)) for m in
+                     (re.match(r"^(.+?)\s+([a-z]{2}_[A-Z]{2})\s+#", line) for line in listing.splitlines())
+                     if m]
+        names = {name for name, _ in installed}
+        voices: dict[str, Optional[str]] = {}
+        for language in ("en", "zh"):
+            voices[language] = next((n for n in cls._PREFERRED[language] if n in names), None)
+            if voices[language] is None:   # 避免 "Bells"、"Bad News" 等特效语音：只取首选地区的第一个
+                voices[language] = next((n for locale in cls._LOCALES[language]
+                                         for n, l in installed if l == locale), None)
+        return voices
 
     def speak(self, text: str) -> None:
         self.stop()
         text = text.strip()
         if text:
-            self._process = subprocess.Popen(["say", "-r", self._words_per_minute, text],
-                                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            voice = self._voices.get("zh" if has_cjk(text) else "en")
+            self._process = subprocess.Popen(
+                ["say", "-r", self._words_per_minute, *(["-v", voice] if voice else []), text],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def stop(self) -> None:
         if self._process is not None and self._process.poll() is None:

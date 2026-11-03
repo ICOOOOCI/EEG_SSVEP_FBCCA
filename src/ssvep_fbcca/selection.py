@@ -1,27 +1,24 @@
-"""滑动窗口上的决策逻辑：分数平滑、连续有效窗口计数和轮椅状态机。
+"""滑动窗口上的决策逻辑：分数平滑和轮椅状态机。
 
 这里不涉及显示、LSL 或线程，因此可以脱离硬件单独测试。
 """
 
 from __future__ import annotations
 
-from collections import deque
 from typing import Optional
 
 import numpy as np
 
 
-class SelectionVote:
-    """平滑各窗口分数；连续若干个有效窗口指向同一候选时才算选中。"""
+class ScoreSmoother:
+    """平滑各窗口分数，不累计窗口或等待连续一致结果。"""
 
-    def __init__(self, hold: int, ema: float):
-        self.hold = int(hold)
+    def __init__(self, ema: float):
         self.ema = float(ema)
         self.reset()
 
     def reset(self) -> None:
-        """清空平滑状态和历史；之后只依据新的窗口判断。"""
-        self.history: deque[Optional[int]] = deque(maxlen=self.hold)
+        """清空平滑状态；之后只依据新的窗口判断。"""
         self.smoothed: Optional[np.ndarray] = None
 
     def smooth(self, scores: np.ndarray) -> np.ndarray:
@@ -32,14 +29,6 @@ class SelectionVote:
         else:
             self.smoothed = self.ema * raw + (1.0 - self.ema) * self.smoothed
         return self.smoothed
-
-    def record(self, candidate: Optional[int]) -> Optional[int]:
-        """记录本窗口候选；无效窗口会打断连续计数。稳定时返回该候选。"""
-        self.history.append(candidate)
-        if (candidate is not None and len(self.history) == self.hold
-                and len(set(self.history)) == 1):
-            return candidate
-        return None
 
 
 class ChairStateMachine:
@@ -52,9 +41,9 @@ class ChairStateMachine:
     SELECT, CONFIRM, MOVING = "SELECT", "CONFIRM", "MOVING"
     DIRECTIONS = ("UP", "DOWN", "LEFT", "RIGHT")
 
-    def __init__(self, vote: SelectionVote, *, settle_s: float, confirm_timeout_s: float,
+    def __init__(self, smoother: ScoreSmoother, *, settle_s: float, confirm_timeout_s: float,
                  watchdog_s: float):
-        self.vote = vote
+        self.smoother = smoother
         self.settle_s = settle_s
         self.confirm_timeout_s = confirm_timeout_s
         self.watchdog_s = watchdog_s
@@ -78,27 +67,26 @@ class ChairStateMachine:
             if candidate == self.target:
                 self.last_ok = now
                 return self.target, None
-            return "STOP", "STOPPED"     # 行驶中不等连续窗口，一次偏离就停
+            return "STOP", "STOPPED"     # 行驶中一次偏离就停
         if self.phase == self.CONFIRM:
             if candidate is not None and candidate != self.target:
                 return None, "CANCELLED"
-            if self.vote.record(candidate) is None:
+            if candidate is None:
                 return None, None
             self.phase = self.MOVING
             self.last_ok = now
             return self.target, None
-        stable = self.vote.record(candidate)
-        if stable is None:
+        if candidate is None:
             return None, None
-        if stable == "STOP":
+        if candidate == "STOP":
             return "STOP", "STOP"
-        if stable == "MENU":
+        if candidate == "MENU":
             return "STOP", "MENU"
         self.phase = self.CONFIRM
-        self.target = stable
+        self.target = candidate
         self.confirm_started = now
         self.window_floor = now + self.settle_s
-        self.vote.reset()
+        self.smoother.reset()
         return None, None
 
     def tick(self, now: float) -> tuple[Optional[str], Optional[str]]:
@@ -111,10 +99,10 @@ class ChairStateMachine:
 
     def stop_pressed(self) -> tuple[Optional[str], Optional[str]]:
         """键盘急停已发送 STOP；作废正在进行的判断。"""
-        self.vote.reset()
+        self.smoother.reset()
         if self.phase == self.SELECT:
             return None, None
         return None, "STOPPED"
 
 
-__all__ = ["SelectionVote", "ChairStateMachine"]
+__all__ = ["ScoreSmoother", "ChairStateMachine"]

@@ -26,8 +26,6 @@ def static_ui_self_test(cfg: Config, *, seconds: float = 5.0) -> dict:
               "scope": "静态布局、字体、窗口与软件刷新时序；不验证EEG、识别准确率或物理显示延迟"}
     try:
         app = PsychoPyKeyboard(replace(cfg), ContinuousLSL(cfg), None, TrialLedger(), static_only=True)
-        app.output_text.autoDraw = True
-        app.output_caption.autoDraw = True
         app.win.color = CHAT_BG
         app.ledger.typed_text = "STATIC UI CHECK  ABC 123"
         app._sync_output_text(force=True)

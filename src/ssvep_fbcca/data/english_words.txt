@@ -1,5 +1,10 @@
 # Common English words, most frequent first, plus everyday care vocabulary.
 # One word per line; lines starting with # are ignored. Used by predict.py.
+# Demo words first, so they rank above other words with the same first letters.
+good
+morning
+bci
+test
 i
 yes
 no

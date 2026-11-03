@@ -831,6 +831,7 @@ def write_tidy_archive(open_member: Callable[[str], Any], stem: str, destination
             "eeg_channels": {"indices": [int(i) for i in selected], "labels": config.get("channel_labels")},
             "timing": {"device_timestamp_lag_s": config.get("device_timestamp_lag_s"),
                        "response_delay_s": config.get("response_delay_s"),
+                       "startup_timebase_review": stream.get("startup_timebase_review"),
                        "timestamp_clock": "LSL local_clock, dejittered; eeg_raw timestamps already lag-corrected"},
             "recording": metadata.get("recording"),
             "quality": ({"presentation": qc.get("presentation_qc"), "signal": qc.get("signal_qc")}
